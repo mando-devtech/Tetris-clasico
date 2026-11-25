@@ -7,7 +7,7 @@ tags:
   - proyecto/tetris-clasico
   - brain
   - documentacion
-status: completado-listo-para-despliegue
+status: publicado-en-github-pages
 repo: "https://github.com/mando-devtech/Tetris-clasico"
 url_pages: "https://mando-devtech.github.io/Tetris-clasico/"
 updated: 2026-11-25
@@ -27,7 +27,7 @@ updated: 2026-11-25
 - **Aislamiento con proyecto hermano (*Diana Sudoku*):**
   - `localStorage` bajo clave única: `'tetris_clasico_v1'`
   - Caché de Service Worker única: `'tetris-clasico-v1'` (solo limpia `tetris-clasico-*`, nunca toca `diana-sudoku-*`).
-- **Estado actual:** Implementado y probado. Entregable único autocontenido (`index_unico.html`, 118 KB) + proyecto modular completo (`index.html`, `styles.css`, `js/*`, `icons/*`, `tests/*`).
+- **Estado actual:** Implementado, probado (`43/43` unitarias, `66/66` E2E) y publicado en GitHub Pages (`https://mando-devtech.github.io/Tetris-clasico/`) con PWA completa, además del entregable único autocontenido (`index_unico.html`).
 
 ---
 
@@ -109,11 +109,9 @@ tetris-clasico/
 ## 5. Despliegue en GitHub Pages y Próximos Pasos
 
 - **Repositorio GitHub:** `https://github.com/mando-devtech/Tetris-clasico`
-- **Publicación rápida con el HTML único:**
-  1. Subir `index.html` en `Add file → Upload files` dentro de `mando-devtech/Tetris-clasico`.
-  2. Activar **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**.
-  3. Jugar en PC o celular en `https://mando-devtech.github.io/Tetris-clasico/`.
+- **URL en vivo (PWA completa):** `https://mando-devtech.github.io/Tetris-clasico/`
+- **Carpeta local:** `D:\Armando\source\Personal\tetris-clasico` (rama `main`, `gonzalez.dev.tech@gmail.com`)
 - **Ideas futuras:**
-  - Subir la carpeta modular completa (con `manifest.webmanifest`, `service-worker.js`, `icons/`, `.nojekyll`) para activar instalación PWA offline completa.
   - Modos **Sprint 40 líneas**, **Ultra 2 min** y **Modo Zen**.
   - Remapeo de botones de Xbox/teclado y T-Spins + vibración háptica en móvil.
+  - Pruebas E2E combinadas adicionales (`test_tier3_combinations.py`, `test_tier4_scenarios.py`, Tier 5).

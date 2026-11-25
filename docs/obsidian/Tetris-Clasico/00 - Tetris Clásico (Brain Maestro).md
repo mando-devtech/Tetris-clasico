@@ -7,7 +7,7 @@ tags:
   - proyecto/tetris-clasico
   - indice
   - brain
-status: completado-listo-para-despliegue
+status: publicado-en-github-pages
 stack:
   - HTML5
   - CSS3
@@ -29,8 +29,8 @@ updated: 2026-11-25
 
 1. [[01 - Requisitos y Decisiones de Diseño]] — Qué pidió el usuario, cómo se resolvió cada rama del diseño (controles PC, gestos móviles + sensibilidad, control Xbox, audio, PWA).
 2. [[02 - Arquitectura y Contratos de Módulos]] — Estructura de archivos, orden de carga, contratos `window.Tetris.*`, modelo de datos en `localStorage`, aislamiento respecto a *Diana Sudoku* y parámetros exactos.
-3. [[03 - Historial de Pruebas y Calidad]] — Suite unitaria en Node (`43/43`), suite E2E en Playwright (`61/66` tras calibración), correcciones aplicadas y casos pendientes menores.
-4. [[04 - Despliegue, GitHub Pages y Pendientes]] — Estado del repositorio Git, bloqueo de `git push` desde la VM, entregable autocontenido (`index_unico.html`), pasos de publicación y roadmap futuro.
+3. [[03 - Historial de Pruebas y Calidad]] — Suite unitaria en Node (`43/43`), suite E2E en Playwright (`66/66` aprobadas), correcciones aplicadas y cobertura.
+4. [[04 - Despliegue, GitHub Pages y Pendientes]] — Repositorio Git (`mando-devtech/Tetris-clasico`), publicación en GitHub Pages (`https://mando-devtech.github.io/Tetris-clasico/`), entregable `index_unico.html` y roadmap futuro.
 
 ---
 
@@ -48,4 +48,4 @@ updated: 2026-11-25
   - `renderer.js` → `<canvas>` HiDPI (`dpr <= 2`), bloques biselados neon/glass, partículas (`<= 120`), estela Hard Drop y callouts flotantes.
   - `input.js` → Teclado (`DAS 160 ms` / `ARR 35 ms`), gestos táctiles sobre `#board-stage` con **sensibilidad `1–10`** y **Control Xbox** vía Gamepad API.
   - `main.js` → Bucle `requestAnimationFrame`, UI/modales, persistencia segura en `localStorage` y registro condicional de PWA solo en `http:`/`https:`.
-- **Estado actual:** Código completo y probado. Entregable multi-archivo en rama local `main` (commit `d5c068e`) + versión única autocontenida `index_unico.html` (`118 KB`) lista para subir a `mando-devtech/Tetris-clasico`.
+- **Estado actual:** Código completo, verificado (`43/43` unitarias y `66/66` E2E) y publicado en rama `main` (`mando-devtech/Tetris-clasico`), activo en vivo en `https://mando-devtech.github.io/Tetris-clasico/` con soporte PWA completo (además de `index_unico.html` como respaldo autocontenido).
