@@ -1,0 +1,41 @@
+# Home directory & agent/tooling dotfiles (workspace is $HOME)
+.agents/
+.gemini/
+.android/
+.gradle/
+.cache/
+.config/
+.local/
+.npm/
+.pki/
+.dbus/
+.mozilla/
+Downloads/
+.bash*
+.profile
+.node_repl_history
+.python_history
+.wget-hsts
+.lesshst
+.viminfo
+.sudo_as_admin_successful
+.selected_editor
+.Xauthority
+.ICEauthority
+
+# Package & runtime artifacts
+node_modules/
+__pycache__/
+.venv/
+.pw-browsers/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# OS & editor clutter
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

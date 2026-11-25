@@ -1,0 +1,4238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Tetris Clásico</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23060913%27/%3E%3Cpath d=%27M24 16h16v16H24zM8 32h16v16H8zM24 32h16v16H24zM40 32h16v16H40z%27 fill=%27%2322d3ee%27/%3E%3C/svg%3E">
+  
+  <style>
+:root {
+  --bg-deep: #060913;
+  --bg-glow-1: rgba(34, 211, 238, 0.14);
+  --bg-glow-2: rgba(192, 132, 252, 0.14);
+  --glass-bg: rgba(15, 23, 42, 0.72);
+  --glass-border: rgba(148, 163, 184, 0.18);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent-cyan: #22d3ee;
+  --accent-purple: #c084fc;
+  --accent-green: #4ade80;
+  --danger: #f87171;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 18% 15%, var(--bg-glow-1), transparent 45%),
+    radial-gradient(circle at 82% 85%, var(--bg-glow-2), transparent 45%),
+    var(--bg-deep);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  gap: 10px;
+  overflow: hidden;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.55);
+}
+
+/* Barra superior */
+.top-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  gap: 10px;
+  border-radius: var(--radius-md);
+}
+
+.brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gamepad-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  white-space: nowrap;
+}
+
+.gamepad-badge.connected {
+  color: var(--accent-green);
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(20, 83, 45, 0.25);
+}
+
+.gamepad-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.gamepad-badge.connected .gamepad-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(30, 41, 59, 0.75);
+  color: var(--text-main);
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(34, 211, 238, 0.14);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+.icon-btn.muted {
+  opacity: 0.5;
+  color: var(--text-muted);
+}
+
+/* Diseño principal Escritorio */
+.game-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+
+.side-column {
+  flex: 0 0 185px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-card {
+  padding: 12px 14px;
+}
+
+.panel-heading {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.hold-box {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.hold-box:hover {
+  border-color: var(--accent-cyan);
+}
+
+.next-box {
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-row dt {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.stat-row dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+/* Escenario del Tablero */
+.board-stage {
+  position: relative;
+  flex: 0 1 460px;
+  min-width: 240px;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  touch-action: none;
+  overflow: hidden;
+  border-color: rgba(34, 211, 238, 0.28);
+  box-shadow: 0 0 32px rgba(34, 211, 238, 0.08), 0 12px 32px rgba(2, 6, 23, 0.65);
+}
+
+#board-canvas {
+  display: block;
+  border-radius: 10px;
+  touch-action: none;
+}
+
+/* Overlays sobre el tablero */
+.stage-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 9, 19, 0.76);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.overlay-card {
+  width: 100%;
+  max-width: 290px;
+  padding: 22px 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overlay-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.neon-text {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.overlay-subtitle {
+  margin: -6px 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.level-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.picker-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.picker-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pill-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--text-main);
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pill-btn:hover {
+  border-color: var(--accent-cyan);
+}
+
+.picker-value {
+  min-width: 28px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.primary-btn,
+.secondary-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.28);
+}
+
+.primary-btn:hover {
+  filter: brightness(1.08);
+}
+
+.secondary-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: var(--glass-border);
+  color: var(--text-main);
+}
+
+.secondary-btn:hover {
+  border-color: var(--accent-cyan);
+}
+
+.record-badge {
+  align-self: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #060913;
+  background: linear-gradient(90deg, #facc15, #fb923c);
+}
+
+.summary-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.65);
+}
+
+.summary-item dt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.summary-item dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal de Ajustes */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 540px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.setting-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.18);
+  color: var(--accent-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+#sensitivity-slider {
+  width: 100%;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+.slider-hints {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 0.9rem;
+}
+
+.toggle-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.16);
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.toggle-btn[aria-pressed="false"] {
+  border-color: var(--glass-border);
+  background: rgba(30, 41, 59, 0.65);
+  color: var(--text-muted);
+}
+
+.status-pill {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.75);
+  color: var(--text-muted);
+}
+
+.status-pill.connected {
+  color: var(--accent-green);
+  background: rgba(20, 83, 45, 0.35);
+}
+
+.controls-guide h3 {
+  margin: 4px 0 8px;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.guide-card {
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(9, 13, 26, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.guide-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  color: var(--accent-cyan);
+}
+
+.guide-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.guide-card strong {
+  color: var(--text-main);
+}
+
+/* Diseño Móvil (<= 820px): Barra superior compacta + 80%+ de altura para .board-stage */
+@media (max-width: 820px) {
+  .app-shell {
+    padding: max(4px, env(safe-area-inset-top)) 6px max(4px, env(safe-area-inset-bottom)) 6px;
+    gap: 4px;
+  }
+
+  .top-bar {
+    padding: 4px 8px;
+    min-height: 36px;
+    border-radius: 10px;
+  }
+
+  .brand-title {
+    font-size: 0.88rem;
+  }
+
+  .gamepad-badge {
+    padding: 2px 7px;
+    font-size: 0.68rem;
+  }
+
+  .gamepad-text {
+    display: none;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 60px 1fr 136px;
+    grid-template-rows: 52px 1fr;
+    gap: 4px;
+    align-items: stretch;
+  }
+
+  .side-left {
+    grid-column: 1;
+    grid-row: 1;
+    flex: none;
+    min-width: 0;
+  }
+
+  .side-right {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    flex: none;
+    flex-direction: row-reverse;
+    align-items: stretch;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .records-card,
+  .panel-heading {
+    display: none;
+  }
+
+  .panel-card {
+    padding: 3px 5px;
+    border-radius: 10px;
+  }
+
+  .hold-card {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hold-box {
+    padding: 2px;
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  .next-card {
+    flex: 0 0 136px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .next-box {
+    padding: 2px;
+    border-radius: 8px;
+  }
+
+  .stats-card {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stat-list {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 4px;
+  }
+
+  .stat-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .stat-row dt {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+  }
+
+  .stat-row dd {
+    font-size: 0.82rem;
+  }
+
+  .board-stage {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-height: 0;
+    padding: 2px;
+    border-radius: 12px;
+  }
+
+  .guide-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Barra superior (compacta en móvil, cabecera elegante en escritorio) -->
+    <header class="top-bar glass-panel" aria-label="Barra superior del juego">
+      <div class="brand-cluster">
+        <span class="brand-title">TETRIS</span>
+        <span id="gamepad-badge" class="gamepad-badge" aria-live="polite" title="Estado del control Xbox">
+          <span class="gamepad-dot" aria-hidden="true"></span>
+          <span class="gamepad-text">Sin control</span>
+        </span>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" id="btn-music" class="icon-btn" aria-label="Alternar música" title="Música" aria-pressed="true">
+          <span aria-hidden="true">♫</span>
+        </button>
+        <button type="button" id="btn-sfx" class="icon-btn" aria-label="Alternar efectos de sonido" title="Efectos de sonido" aria-pressed="true">
+          <span aria-hidden="true">🔊</span>
+        </button>
+        <button type="button" id="btn-pause" class="icon-btn" aria-label="Pausar o reanudar partida" title="Pausa (P)">
+          <span aria-hidden="true">⏸</span>
+        </button>
+        <button type="button" id="btn-settings" class="icon-btn" aria-label="Abrir ajustes" title="Ajustes">
+          <span aria-hidden="true">⚙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Área principal de juego -->
+    <main class="game-layout">
+      <!-- Panel izquierdo (Hold + Récords) -->
+      <aside class="side-column side-left">
+        <section class="glass-panel panel-card hold-card">
+          <h2 class="panel-heading">GUARDAR (HOLD)</h2>
+          <button type="button" id="hold-box" class="hold-box" aria-label="Guardar o intercambiar pieza actual">
+            <canvas id="hold-canvas" width="88" height="88" aria-label="Pieza guardada"></canvas>
+          </button>
+        </section>
+
+        <section class="glass-panel panel-card records-card">
+          <h2 class="panel-heading">RÉCORDS</h2>
+          <dl class="stat-list">
+            <div class="stat-row">
+              <dt>Mejor puntaje</dt>
+              <dd id="best-score-value">0</dd>
+            </div>
+            <div class="stat-row">
+              <dt>Mejor nivel</dt>
+              <dd id="best-level-value">0</dd>
+            </div>
+            <div class="stat-row">
+              <dt>Más líneas</dt>
+              <dd id="best-lines-value">0</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
+
+      <!-- Escenario central del tablero -->
+      <section id="board-stage" class="board-stage glass-panel" aria-label="Tablero de Tetris">
+        <canvas id="board-canvas" width="300" height="600" aria-label="Área de juego de Tetris"></canvas>
+
+        <!-- Overlay: Inicio -->
+        <div id="overlay-start" class="stage-overlay" role="dialog" aria-modal="true" aria-labelledby="start-title">
+          <div class="overlay-card glass-panel">
+            <h1 id="start-title" class="overlay-title neon-text">TETRIS CLÁSICO</h1>
+            <p class="overlay-subtitle">Modo Maratón</p>
+
+            <div class="level-picker">
+              <span class="picker-label">Nivel inicial</span>
+              <div class="picker-controls">
+                <button type="button" id="btn-level-down" class="pill-btn" aria-label="Disminuir nivel inicial">−</button>
+                <span id="start-level-value" class="picker-value">1</span>
+                <button type="button" id="btn-level-up" class="pill-btn" aria-label="Aumentar nivel inicial">+</button>
+              </div>
+            </div>
+
+            <div class="overlay-actions">
+              <button type="button" id="btn-play" class="primary-btn">Jugar</button>
+              <button type="button" id="btn-start-settings" class="secondary-btn">Ajustes y controles</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Pausa -->
+        <div id="overlay-pause" class="stage-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+          <div class="overlay-card glass-panel">
+            <h2 id="pause-title" class="overlay-title">PAUSA</h2>
+            <div class="overlay-actions">
+              <button type="button" id="btn-resume" class="primary-btn">Continuar</button>
+              <button type="button" id="btn-pause-settings" class="secondary-btn">Ajustes</button>
+              <button type="button" id="btn-restart" class="secondary-btn">Reiniciar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Fin de Partida -->
+        <div id="overlay-gameover" class="stage-overlay" role="dialog" aria-modal="true" aria-labelledby="gameover-title" hidden>
+          <div class="overlay-card glass-panel">
+            <h2 id="gameover-title" class="overlay-title">FIN DE LA PARTIDA</h2>
+            <div id="gameover-record-badge" class="record-badge" hidden>¡NUEVO RÉCORD!</div>
+            <dl class="summary-stats">
+              <div class="summary-item">
+                <dt>Puntaje</dt>
+                <dd id="final-score-value">0</dd>
+              </div>
+              <div class="summary-item">
+                <dt>Nivel</dt>
+                <dd id="final-level-value">1</dd>
+              </div>
+              <div class="summary-item">
+                <dt>Líneas</dt>
+                <dd id="final-lines-value">0</dd>
+              </div>
+            </dl>
+            <div class="overlay-actions">
+              <button type="button" id="btn-play-again" class="primary-btn">Jugar de nuevo</button>
+              <button type="button" id="btn-gameover-settings" class="secondary-btn">Ajustes</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel derecho (Estadísticas en vivo + Próximas piezas) -->
+      <aside class="side-column side-right">
+        <section class="glass-panel panel-card next-card">
+          <h2 class="panel-heading">SIGUIENTES</h2>
+          <div class="next-box">
+            <canvas id="next-canvas" width="96" height="228" aria-label="Próximas piezas"></canvas>
+          </div>
+        </section>
+
+        <section class="glass-panel panel-card stats-card">
+          <h2 class="panel-heading">PARTIDA</h2>
+          <dl class="stat-list">
+            <div class="stat-row">
+              <dt>Puntaje</dt>
+              <dd id="score-value">0</dd>
+            </div>
+            <div class="stat-row">
+              <dt>Nivel</dt>
+              <dd id="level-value">1</dd>
+            </div>
+            <div class="stat-row">
+              <dt>Líneas</dt>
+              <dd id="lines-value">0</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Modal de Ajustes -->
+  <div id="modal-settings" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2 id="settings-title">Ajustes y Controles</h2>
+        <button type="button" id="btn-close-settings" class="icon-btn" aria-label="Cerrar ajustes">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="setting-group">
+          <label for="sensitivity-slider" class="setting-label">
+            <span>Sensibilidad táctil (dedos)</span>
+            <strong id="sensitivity-value" class="setting-badge">5</strong>
+          </label>
+          <input type="range" id="sensitivity-slider" min="1" max="10" step="1" value="5" aria-label="Sensibilidad táctil de 1 a 10">
+          <div class="slider-hints">
+            <span>1 (Preciso)</span>
+            <span>10 (Rápido)</span>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span>Música clásica (Korobeiniki)</span>
+          <button type="button" id="toggle-music" class="toggle-btn" aria-pressed="true">Activada</button>
+        </div>
+
+        <div class="setting-row">
+          <span>Efectos de sonido</span>
+          <button type="button" id="toggle-sfx" class="toggle-btn" aria-pressed="true">Activados</button>
+        </div>
+
+        <div class="setting-row">
+          <span>Control Xbox (Gamepad)</span>
+          <span id="settings-gamepad-status" class="status-pill">Sin control conectado</span>
+        </div>
+
+        <div class="controls-guide">
+          <h3>Guía de controles</h3>
+          <div class="guide-grid">
+            <div class="guide-card">
+              <h4>Teclado</h4>
+              <ul>
+                <li><strong>← / →</strong>: Mover</li>
+                <li><strong>↓</strong>: Caída rápida</li>
+                <li><strong>↑ / X</strong>: Rotar der.</li>
+                <li><strong>Z</strong>: Rotar izq.</li>
+                <li><strong>Espacio</strong>: Caída instantánea</li>
+                <li><strong>C / Shift</strong>: Guardar (Hold)</li>
+                <li><strong>P / Esc</strong>: Pausa</li>
+              </ul>
+            </div>
+            <div class="guide-card">
+              <h4>Táctil</h4>
+              <ul>
+                <li><strong>Arrastrar ← / →</strong>: Mover</li>
+                <li><strong>Toque corto</strong>: Rotar</li>
+                <li><strong>Arrastrar ↓</strong>: Caída rápida</li>
+                <li><strong>Deslizar rápido ↓</strong>: Caída instantánea</li>
+                <li><strong>Tocar Hold / ↑</strong>: Guardar pieza</li>
+              </ul>
+            </div>
+            <div class="guide-card">
+              <h4>Control Xbox</h4>
+              <ul>
+                <li><strong>D-Pad / Stick ← →</strong>: Mover</li>
+                <li><strong>D-Pad ↓ / Stick ↓</strong>: Caída rápida</li>
+                <li><strong>D-Pad ↑</strong>: Caída instantánea</li>
+                <li><strong>A / B</strong>: Rotar der.</li>
+                <li><strong>X</strong>: Rotar izq.</li>
+                <li><strong>LB / RB</strong>: Guardar (Hold)</li>
+                <li><strong>Menú / Start</strong>: Pausa</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+(function (root) {
+  'use strict';
+
+  var COLS = 10;
+  var VISIBLE_ROWS = 20;
+  var BUFFER_ROWS = 4;
+  var TOTAL_ROWS = VISIBLE_ROWS + BUFFER_ROWS;
+
+  var PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+
+  function rotateMatrixCW(matrix) {
+    var n = matrix.length;
+    var rotated = [];
+    var r, c;
+    for (r = 0; r < n; r++) {
+      var row = [];
+      for (c = 0; c < n; c++) {
+        row.push(matrix[n - 1 - c][r]);
+      }
+      rotated.push(row);
+    }
+    return rotated;
+  }
+
+  function buildRotationStates(baseMatrix) {
+    var s0 = baseMatrix;
+    var s1 = rotateMatrixCW(s0);
+    var s2 = rotateMatrixCW(s1);
+    var s3 = rotateMatrixCW(s2);
+    return [s0, s1, s2, s3];
+  }
+
+  var SHAPES = {
+    I: buildRotationStates([
+      [0, 0, 0, 0],
+      [1, 1, 1, 1],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
+    ]),
+    O: buildRotationStates([
+      [1, 1],
+      [1, 1]
+    ]),
+    T: buildRotationStates([
+      [0, 1, 0],
+      [1, 1, 1],
+      [0, 0, 0]
+    ]),
+    S: buildRotationStates([
+      [0, 1, 1],
+      [1, 1, 0],
+      [0, 0, 0]
+    ]),
+    Z: buildRotationStates([
+      [1, 1, 0],
+      [0, 1, 1],
+      [0, 0, 0]
+    ]),
+    J: buildRotationStates([
+      [1, 0, 0],
+      [1, 1, 1],
+      [0, 0, 0]
+    ]),
+    L: buildRotationStates([
+      [0, 0, 1],
+      [1, 1, 1],
+      [0, 0, 0]
+    ])
+  };
+
+  var SPAWN_POS = {
+    I: { col: 3, row: 2 },
+    O: { col: 4, row: 2 },
+    T: { col: 3, row: 2 },
+    S: { col: 3, row: 2 },
+    Z: { col: 3, row: 2 },
+    J: { col: 3, row: 2 },
+    L: { col: 3, row: 2 }
+  };
+
+  var COLORS = {
+    I: {
+      fill: '#22d3ee',
+      light: '#a5f3fc',
+      dark: '#0891b2',
+      glow: 'rgba(34, 211, 238, 0.55)',
+      ghostFill: 'rgba(34, 211, 238, 0.16)',
+      ghostStroke: 'rgba(34, 211, 238, 0.65)'
+    },
+    O: {
+      fill: '#facc15',
+      light: '#fef08a',
+      dark: '#ca8a04',
+      glow: 'rgba(250, 204, 21, 0.55)',
+      ghostFill: 'rgba(250, 204, 21, 0.16)',
+      ghostStroke: 'rgba(250, 204, 21, 0.65)'
+    },
+    T: {
+      fill: '#c084fc',
+      light: '#e9d5ff',
+      dark: '#9333ea',
+      glow: 'rgba(192, 132, 252, 0.55)',
+      ghostFill: 'rgba(192, 132, 252, 0.16)',
+      ghostStroke: 'rgba(192, 132, 252, 0.65)'
+    },
+    S: {
+      fill: '#4ade80',
+      light: '#bbf7d0',
+      dark: '#16a34a',
+      glow: 'rgba(74, 222, 128, 0.55)',
+      ghostFill: 'rgba(74, 222, 128, 0.16)',
+      ghostStroke: 'rgba(74, 222, 128, 0.65)'
+    },
+    Z: {
+      fill: '#f87171',
+      light: '#fecaca',
+      dark: '#dc2626',
+      glow: 'rgba(248, 113, 113, 0.55)',
+      ghostFill: 'rgba(248, 113, 113, 0.16)',
+      ghostStroke: 'rgba(248, 113, 113, 0.65)'
+    },
+    J: {
+      fill: '#60a5fa',
+      light: '#bfdbfe',
+      dark: '#2563eb',
+      glow: 'rgba(96, 165, 250, 0.55)',
+      ghostFill: 'rgba(96, 165, 250, 0.16)',
+      ghostStroke: 'rgba(96, 165, 250, 0.65)'
+    },
+    L: {
+      fill: '#fb923c',
+      light: '#fed7aa',
+      dark: '#ea580c',
+      glow: 'rgba(251, 146, 60, 0.55)',
+      ghostFill: 'rgba(251, 146, 60, 0.16)',
+      ghostStroke: 'rgba(251, 146, 60, 0.65)'
+    }
+  };
+
+  // Screen-space SRS wall-kick offsets: [dCol, dRow] where +dCol = right, +dRow = down.
+  var WALL_KICKS = {
+    JLSTZ: {
+      '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+      '1>0': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+      '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+      '2>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+      '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+      '3>2': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+      '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+      '0>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]]
+    },
+    I: {
+      '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+      '1>0': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+      '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+      '2>1': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+      '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+      '3>2': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+      '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+      '0>3': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]]
+    },
+    O: {
+      '0>1': [[0, 0]],
+      '1>0': [[0, 0]],
+      '1>2': [[0, 0]],
+      '2>1': [[0, 0]],
+      '2>3': [[0, 0]],
+      '3>2': [[0, 0]],
+      '3>0': [[0, 0]],
+      '0>3': [[0, 0]]
+    }
+  };
+
+  var EMPTY_KICKS = Object.freeze([]);
+
+  var LOCK_DELAY_MS = 500;
+  var MAX_LOCK_RESETS = 15;
+  var LINES_PER_LEVEL = 10;
+
+  var MIN_START_LEVEL = 1;
+  var MAX_START_LEVEL = 15;
+  var MAX_GRAVITY_LEVEL = 20;
+
+  var DAS_MS = 160;
+  var ARR_MS = 35;
+  var SOFT_DROP_REPEAT_MS = 40;
+
+  var GAMEPAD_DEADZONE_X = 0.30;
+  var GAMEPAD_SOFT_DROP_Y = 0.45;
+
+  var TOUCH_SENSITIVITY_MIN = 1;
+  var TOUCH_SENSITIVITY_MAX = 10;
+  var TOUCH_SENSITIVITY_DEFAULT = 5;
+
+  var NEXT_PREVIEW_COUNT = 3;
+
+  var LINE_SCORES = {
+    1: 100,
+    2: 300,
+    3: 500,
+    4: 800
+  };
+  var B2B_MULTIPLIER = 1.5;
+  var COMBO_BASE = 50;
+  var SOFT_DROP_POINTS = 1;
+  var HARD_DROP_POINTS = 2;
+
+  var STORAGE_KEY = 'tetris_clasico_v1';
+  var CACHE_NAME = 'tetris-clasico-v1';
+
+  var DEFAULT_STATE = {
+    bestScore: 0,
+    bestLevel: 0,
+    bestLines: 0,
+    touchSensitivity: TOUCH_SENSITIVITY_DEFAULT,
+    musicEnabled: true,
+    sfxEnabled: true,
+    startLevel: MIN_START_LEVEL
+  };
+
+  function isFiniteInteger(n) {
+    return typeof n === 'number' && isFinite(n) && Math.floor(n) === n;
+  }
+
+  function normalizeRot(r) {
+    return ((r % 4) + 4) % 4;
+  }
+
+  function getWallKicks(type, fromRot, toRot) {
+    if (!isFiniteInteger(fromRot) || !isFiniteInteger(toRot)) {
+      return EMPTY_KICKS;
+    }
+    var table;
+    if (type === 'I') {
+      table = WALL_KICKS.I;
+    } else if (type === 'O') {
+      table = WALL_KICKS.O;
+    } else if (type === 'J' || type === 'L' || type === 'S' || type === 'T' || type === 'Z') {
+      table = WALL_KICKS.JLSTZ;
+    } else {
+      return EMPTY_KICKS;
+    }
+    var key = normalizeRot(fromRot) + '>' + normalizeRot(toRot);
+    return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : EMPTY_KICKS;
+  }
+
+  function getGravityMs(level) {
+    var num;
+    if (typeof level === 'number') {
+      num = level;
+    } else if (typeof level === 'string' && level.trim() !== '') {
+      num = Number(level);
+    } else {
+      num = 1;
+    }
+    if (!isFinite(num)) {
+      num = num === Infinity ? MAX_GRAVITY_LEVEL : 1;
+    }
+    var eff = Math.max(1, Math.min(MAX_GRAVITY_LEVEL, Math.floor(num)));
+    return Math.pow(0.8 - (eff - 1) * 0.007, eff - 1) * 1000;
+  }
+
+  function getSoftDropMs(level) {
+    return Math.min(SOFT_DROP_REPEAT_MS, getGravityMs(level));
+  }
+
+  function deepFreeze(obj) {
+    if (obj === null || (typeof obj !== 'object' && typeof obj !== 'function')) {
+      return obj;
+    }
+    if (!Object.isFrozen(obj)) {
+      Object.freeze(obj);
+    }
+    var keys = Object.keys(obj);
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      deepFreeze(obj[keys[i]]);
+    }
+    return obj;
+  }
+
+  var api = {
+    COLS: COLS,
+    VISIBLE_ROWS: VISIBLE_ROWS,
+    BUFFER_ROWS: BUFFER_ROWS,
+    TOTAL_ROWS: TOTAL_ROWS,
+    PIECE_TYPES: PIECE_TYPES,
+    SHAPES: SHAPES,
+    SPAWN_POS: SPAWN_POS,
+    COLORS: COLORS,
+    WALL_KICKS: WALL_KICKS,
+    LOCK_DELAY_MS: LOCK_DELAY_MS,
+    MAX_LOCK_RESETS: MAX_LOCK_RESETS,
+    LINES_PER_LEVEL: LINES_PER_LEVEL,
+    MIN_START_LEVEL: MIN_START_LEVEL,
+    MAX_START_LEVEL: MAX_START_LEVEL,
+    MAX_GRAVITY_LEVEL: MAX_GRAVITY_LEVEL,
+    DAS_MS: DAS_MS,
+    ARR_MS: ARR_MS,
+    SOFT_DROP_REPEAT_MS: SOFT_DROP_REPEAT_MS,
+    GAMEPAD_DEADZONE_X: GAMEPAD_DEADZONE_X,
+    GAMEPAD_SOFT_DROP_Y: GAMEPAD_SOFT_DROP_Y,
+    TOUCH_SENSITIVITY_MIN: TOUCH_SENSITIVITY_MIN,
+    TOUCH_SENSITIVITY_MAX: TOUCH_SENSITIVITY_MAX,
+    TOUCH_SENSITIVITY_DEFAULT: TOUCH_SENSITIVITY_DEFAULT,
+    NEXT_PREVIEW_COUNT: NEXT_PREVIEW_COUNT,
+    LINE_SCORES: LINE_SCORES,
+    B2B_MULTIPLIER: B2B_MULTIPLIER,
+    COMBO_BASE: COMBO_BASE,
+    SOFT_DROP_POINTS: SOFT_DROP_POINTS,
+    HARD_DROP_POINTS: HARD_DROP_POINTS,
+    STORAGE_KEY: STORAGE_KEY,
+    CACHE_NAME: CACHE_NAME,
+    DEFAULT_STATE: DEFAULT_STATE,
+    getWallKicks: getWallKicks,
+    getGravityMs: getGravityMs,
+    getSoftDropMs: getSoftDropMs
+  };
+
+  deepFreeze(api);
+
+  if (root && typeof root === 'object') {
+    root.Tetris = root.Tetris || {};
+    root.Tetris.Constants = api;
+  }
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : (typeof self !== 'undefined' ? self : this));
+
+  </script>
+  <script>
+(function (root) {
+  'use strict';
+
+  var KOROBEINIKI_BPM = 144;
+  var BEAT_SEC = 60 / KOROBEINIKI_BPM;
+
+  var NOTE_FREQS = Object.freeze({
+    REST: 0,
+    E2: 82.41,
+    A2: 110.00,
+    B2: 123.47,
+    C3: 130.81,
+    D3: 146.83,
+    E3: 164.81,
+    'G#3': 207.65,
+    A3: 220.00,
+    B3: 246.94,
+    C4: 261.63,
+    D4: 293.66,
+    E4: 329.63,
+    F4: 349.23,
+    G4: 392.00,
+    'G#4': 415.30,
+    A4: 440.00,
+    B4: 493.88,
+    C5: 523.25,
+    D5: 587.33,
+    E5: 659.25,
+    F5: 698.46,
+    G5: 783.99,
+    'G#5': 830.61,
+    A5: 880.00
+  });
+
+  // 24-bar A-A-B Korobeiniki arrangement (each bar sums to 4.0 beats)
+  var SECTION_A_LEAD = [
+    [['E5', 1], ['B4', 0.5], ['C5', 0.5], ['D5', 1], ['C5', 0.5], ['B4', 0.5]],
+    [['A4', 1], ['A4', 0.5], ['C5', 0.5], ['E5', 1], ['D5', 0.5], ['C5', 0.5]],
+    [['B4', 1.5], ['C5', 0.5], ['D5', 1], ['E5', 1]],
+    [['C5', 1], ['A4', 1], ['A4', 2]],
+    [['REST', 0.5], ['D5', 1], ['F5', 0.5], ['A5', 1], ['G5', 0.5], ['F5', 0.5]],
+    [['E5', 1.5], ['C5', 0.5], ['E5', 1], ['D5', 0.5], ['C5', 0.5]],
+    [['B4', 1], ['B4', 0.5], ['C5', 0.5], ['D5', 1], ['E5', 1]],
+    [['C5', 1], ['A4', 1], ['A4', 2]]
+  ];
+
+  var SECTION_B_LEAD = [
+    [['E4', 2], ['C4', 2]],
+    [['D4', 2], ['B3', 2]],
+    [['C4', 2], ['A3', 2]],
+    [['G#3', 2], ['B3', 2]],
+    [['E4', 2], ['C4', 2]],
+    [['D4', 2], ['B3', 2]],
+    [['C4', 1], ['E4', 1], ['A4', 2]],
+    [['G#4', 3], ['REST', 1]]
+  ];
+
+  var SECTION_A_BASS = [
+    [['E2', 1], ['E3', 1], ['E2', 1], ['E3', 1]],
+    [['A2', 1], ['A3', 1], ['A2', 1], ['A3', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 1], ['G#3', 1]],
+    [['A2', 1], ['E3', 1], ['A2', 2]],
+    [['D3', 1], ['A3', 1], ['D3', 1], ['A3', 1]],
+    [['C3', 1], ['G4', 1], ['C3', 1], ['G4', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 1], ['G#3', 1]],
+    [['A2', 1], ['E3', 1], ['A2', 2]]
+  ];
+
+  var SECTION_B_BASS = [
+    [['A2', 1], ['E3', 1], ['A2', 1], ['E3', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 1], ['G#3', 1]],
+    [['A2', 1], ['E3', 1], ['A2', 1], ['E3', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 1], ['E3', 1]],
+    [['A2', 1], ['E3', 1], ['A2', 1], ['E3', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 1], ['G#3', 1]],
+    [['A2', 1], ['E3', 1], ['A2', 1], ['E3', 1]],
+    [['E2', 1], ['G#3', 1], ['E2', 2]]
+  ];
+
+  var KOROBEINIKI_LEAD = Object.freeze(SECTION_A_LEAD.concat(SECTION_A_LEAD, SECTION_B_LEAD));
+  var KOROBEINIKI_BASS = Object.freeze(SECTION_A_BASS.concat(SECTION_A_BASS, SECTION_B_BASS));
+
+  function flattenBars(bars) {
+    var events = [];
+    var beatOffset = 0;
+    var b, i, item;
+    for (b = 0; b < bars.length; b++) {
+      for (i = 0; i < bars[b].length; i++) {
+        item = bars[b][i];
+        events.push({
+          note: item[0],
+          startBeat: beatOffset,
+          durationBeats: item[1]
+        });
+        beatOffset += item[1];
+      }
+    }
+    return { events: events, totalBeats: beatOffset };
+  }
+
+  var LEAD_FLAT = flattenBars(KOROBEINIKI_LEAD);
+  var BASS_FLAT = flattenBars(KOROBEINIKI_BASS);
+  var TOTAL_LOOP_BEATS = LEAD_FLAT.totalBeats;
+
+  function getAudioContextClass() {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return window.AudioContext || window.webkitAudioContext || null;
+  }
+
+  function createAudioController(options) {
+    var opts = options || {};
+    var musicEnabled = opts.musicEnabled !== undefined ? Boolean(opts.musicEnabled) : true;
+    var sfxEnabled = opts.sfxEnabled !== undefined ? Boolean(opts.sfxEnabled) : true;
+    var currentStatus = 'menu';
+
+    var ctx = null;
+    var masterGain = null;
+    var musicGain = null;
+    var sfxGain = null;
+
+    var schedulerTimer = null;
+    var nextLoopStartTime = 0;
+    var leadIndex = 0;
+    var bassIndex = 0;
+    var loopNumber = 0;
+    var activeMusicNodes = [];
+
+    function ensureContext() {
+      if (ctx) {
+        return ctx;
+      }
+      var AudioCtx = getAudioContextClass();
+      if (!AudioCtx) {
+        return null;
+      }
+      try {
+        ctx = new AudioCtx();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = 0.7;
+        masterGain.connect(ctx.destination);
+
+        musicGain = ctx.createGain();
+        musicGain.gain.value = musicEnabled ? 0.22 : 0;
+        musicGain.connect(masterGain);
+
+        sfxGain = ctx.createGain();
+        sfxGain.gain.value = sfxEnabled ? 0.45 : 0;
+        sfxGain.connect(masterGain);
+      } catch (err) {
+        ctx = null;
+      }
+      return ctx;
+    }
+
+    function unlock() {
+      var audioCtx = ensureContext();
+      if (!audioCtx) {
+        return false;
+      }
+      if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+        try {
+          audioCtx.resume();
+        } catch (err) {
+          // Ignore resume errors outside gesture
+        }
+      }
+      if (currentStatus === 'playing' && musicEnabled && !schedulerTimer) {
+        startMusicScheduler();
+      }
+      return true;
+    }
+
+    function stopActiveMusicNodes() {
+      var i, osc;
+      for (i = 0; i < activeMusicNodes.length; i++) {
+        osc = activeMusicNodes[i];
+        try {
+          osc.stop();
+        } catch (err) {
+          // Already stopped
+        }
+        try {
+          osc.disconnect();
+        } catch (err2) {
+          // Ignore
+        }
+      }
+      activeMusicNodes = [];
+    }
+
+    function stopMusicScheduler() {
+      if (schedulerTimer !== null) {
+        clearInterval(schedulerTimer);
+        schedulerTimer = null;
+      }
+      stopActiveMusicNodes();
+    }
+
+    function scheduleNote(freq, startTime, durationSec, type, volume) {
+      if (!ctx || !musicGain || freq <= 0) {
+        return;
+      }
+      var osc = ctx.createOscillator();
+      var env = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      var attack = 0.01;
+      var release = Math.min(0.04, durationSec * 0.25);
+      var sustainEnd = Math.max(startTime + attack, startTime + durationSec - release);
+
+      env.gain.setValueAtTime(0.0001, startTime);
+      env.gain.linearRampToValueAtTime(volume, startTime + attack);
+      env.gain.setValueAtTime(volume, sustainEnd);
+      env.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSec);
+
+      osc.connect(env);
+      env.connect(musicGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + durationSec + 0.01);
+
+      activeMusicNodes.push(osc);
+      osc.onended = function () {
+        var idx = activeMusicNodes.indexOf(osc);
+        if (idx !== -1) {
+          activeMusicNodes.splice(idx, 1);
+        }
+      };
+    }
+
+    function schedulerTick() {
+      if (!ctx || currentStatus !== 'playing' || !musicEnabled) {
+        return;
+      }
+      var lookaheadSec = 0.12;
+      var horizon = ctx.currentTime + lookaheadSec;
+      var loopDurSec = TOTAL_LOOP_BEATS * BEAT_SEC;
+
+      while (true) {
+        var leadItem = LEAD_FLAT.events[leadIndex];
+        var leadTime = nextLoopStartTime + loopNumber * loopDurSec + leadItem.startBeat * BEAT_SEC;
+        var bassItem = BASS_FLAT.events[bassIndex];
+        var bassTime = nextLoopStartTime + loopNumber * loopDurSec + bassItem.startBeat * BEAT_SEC;
+
+        var didSchedule = false;
+
+        if (leadTime < horizon) {
+          var leadFreq = NOTE_FREQS[leadItem.note] || 0;
+          if (leadFreq > 0) {
+            scheduleNote(leadFreq, leadTime, leadItem.durationBeats * BEAT_SEC * 0.9, 'square', 0.35);
+          }
+          leadIndex += 1;
+          didSchedule = true;
+        }
+
+        if (bassTime < horizon) {
+          var bassFreq = NOTE_FREQS[bassItem.note] || 0;
+          if (bassFreq > 0) {
+            scheduleNote(bassFreq, bassTime, bassItem.durationBeats * BEAT_SEC * 0.85, 'triangle', 0.45);
+          }
+          bassIndex += 1;
+          didSchedule = true;
+        }
+
+        if (leadIndex >= LEAD_FLAT.events.length && bassIndex >= BASS_FLAT.events.length) {
+          leadIndex = 0;
+          bassIndex = 0;
+          loopNumber += 1;
+        }
+
+        if (!didSchedule) {
+          break;
+        }
+      }
+    }
+
+    function startMusicScheduler() {
+      if (!ctx || schedulerTimer !== null || !musicEnabled || currentStatus !== 'playing') {
+        return;
+      }
+      nextLoopStartTime = ctx.currentTime + 0.04;
+      leadIndex = 0;
+      bassIndex = 0;
+      loopNumber = 0;
+      schedulerTick();
+      schedulerTimer = setInterval(schedulerTick, 25);
+    }
+
+    function playTone(freqStart, freqEnd, durationSec, type, gainPeak, delaySec) {
+      if (!sfxEnabled) {
+        return;
+      }
+      var audioCtx = ensureContext();
+      if (!audioCtx || !sfxGain) {
+        return;
+      }
+      var t0 = audioCtx.currentTime + (delaySec || 0);
+      var osc = audioCtx.createOscillator();
+      var env = audioCtx.createGain();
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(freqStart, t0);
+      if (freqEnd !== freqStart) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0 + durationSec);
+      }
+
+      env.gain.setValueAtTime(0.0001, t0);
+      env.gain.linearRampToValueAtTime(gainPeak || 0.3, t0 + 0.008);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + durationSec);
+
+      osc.connect(env);
+      env.connect(sfxGain);
+      osc.start(t0);
+      osc.stop(t0 + durationSec + 0.015);
+    }
+
+    function playSfx(name) {
+      if (!sfxEnabled) {
+        return;
+      }
+      if (name === 'move') {
+        playTone(320, 360, 0.04, 'triangle', 0.16);
+      } else if (name === 'rotate') {
+        playTone(440, 620, 0.06, 'sine', 0.22);
+      } else if (name === 'softDrop') {
+        playTone(220, 180, 0.035, 'sine', 0.12);
+      } else if (name === 'hardDrop') {
+        playTone(260, 90, 0.11, 'sawtooth', 0.28);
+        playTone(150, 65, 0.09, 'triangle', 0.32, 0.01);
+      } else if (name === 'lock') {
+        playTone(190, 120, 0.07, 'triangle', 0.22);
+      } else if (name === 'hold') {
+        playTone(392, 523.25, 0.08, 'sine', 0.22);
+      } else if (name === 'lineClear') {
+        playTone(523.25, 659.25, 0.12, 'square', 0.22, 0);
+        playTone(659.25, 783.99, 0.15, 'square', 0.22, 0.07);
+      } else if (name === 'tetris') {
+        playTone(523.25, 523.25, 0.09, 'square', 0.25, 0);
+        playTone(659.25, 659.25, 0.09, 'square', 0.25, 0.07);
+        playTone(783.99, 783.99, 0.09, 'square', 0.25, 0.14);
+        playTone(1046.5, 1046.5, 0.22, 'square', 0.28, 0.21);
+      } else if (name === 'levelUp') {
+        playTone(440, 554.37, 0.09, 'triangle', 0.25, 0);
+        playTone(554.37, 659.25, 0.09, 'triangle', 0.25, 0.08);
+        playTone(659.25, 880, 0.18, 'triangle', 0.28, 0.16);
+      } else if (name === 'gameOver') {
+        playTone(392, 349.23, 0.16, 'sawtooth', 0.24, 0);
+        playTone(349.23, 293.66, 0.16, 'sawtooth', 0.24, 0.15);
+        playTone(293.66, 196, 0.32, 'sawtooth', 0.26, 0.30);
+      }
+    }
+
+    function handleEvents(events) {
+      if (!events || !events.length || !sfxEnabled) {
+        return;
+      }
+      var hasLineClear = false;
+      var hasHardDrop = false;
+      var i, ev;
+      for (i = 0; i < events.length; i++) {
+        ev = events[i];
+        if (ev.type === 'lineClear') {
+          hasLineClear = true;
+          playSfx(ev.count === 4 ? 'tetris' : 'lineClear');
+        } else if (ev.type === 'hardDrop') {
+          hasHardDrop = true;
+          playSfx('hardDrop');
+        }
+      }
+      for (i = 0; i < events.length; i++) {
+        ev = events[i];
+        if (ev.type === 'move') {
+          playSfx('move');
+        } else if (ev.type === 'rotate') {
+          playSfx('rotate');
+        } else if (ev.type === 'hold') {
+          playSfx('hold');
+        } else if (ev.type === 'softDrop') {
+          playSfx('softDrop');
+        } else if (ev.type === 'lock' && !hasLineClear && !hasHardDrop) {
+          playSfx('lock');
+        } else if (ev.type === 'levelUp') {
+          playSfx('levelUp');
+        } else if (ev.type === 'gameOver') {
+          playSfx('gameOver');
+        }
+      }
+    }
+
+    function syncState(status) {
+      currentStatus = status;
+      if (currentStatus === 'playing' && musicEnabled) {
+        if (ctx) {
+          startMusicScheduler();
+        }
+      } else {
+        stopMusicScheduler();
+      }
+    }
+
+    function setMusicEnabled(enabled) {
+      musicEnabled = Boolean(enabled);
+      if (musicGain && ctx) {
+        musicGain.gain.setValueAtTime(musicEnabled ? 0.22 : 0, ctx.currentTime);
+      }
+      if (musicEnabled && currentStatus === 'playing') {
+        if (ctx) {
+          startMusicScheduler();
+        }
+      } else {
+        stopMusicScheduler();
+      }
+    }
+
+    function setSfxEnabled(enabled) {
+      sfxEnabled = Boolean(enabled);
+      if (sfxGain && ctx) {
+        sfxGain.gain.setValueAtTime(sfxEnabled ? 0.45 : 0, ctx.currentTime);
+      }
+    }
+
+    function isMusicEnabled() {
+      return musicEnabled;
+    }
+
+    function isSfxEnabled() {
+      return sfxEnabled;
+    }
+
+    function dispose() {
+      stopMusicScheduler();
+      if (ctx && typeof ctx.close === 'function') {
+        try {
+          ctx.close();
+        } catch (err) {
+          // Ignore close errors
+        }
+      }
+      ctx = null;
+      masterGain = null;
+      musicGain = null;
+      sfxGain = null;
+    }
+
+    return {
+      unlock: unlock,
+      setMusicEnabled: setMusicEnabled,
+      setSfxEnabled: setSfxEnabled,
+      isMusicEnabled: isMusicEnabled,
+      isSfxEnabled: isSfxEnabled,
+      playSfx: playSfx,
+      handleEvents: handleEvents,
+      syncState: syncState,
+      dispose: dispose
+    };
+  }
+
+  var api = {
+    KOROBEINIKI_BPM: KOROBEINIKI_BPM,
+    NOTE_FREQS: NOTE_FREQS,
+    KOROBEINIKI_LEAD: KOROBEINIKI_LEAD,
+    KOROBEINIKI_BASS: KOROBEINIKI_BASS,
+    createAudioController: createAudioController
+  };
+
+  root.Tetris = root.Tetris || {};
+  root.Tetris.Audio = api;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+  </script>
+  <script>
+(function (root) {
+  'use strict';
+
+  var Constants = (root.Tetris && root.Tetris.Constants) ||
+    (typeof require === 'function' ? require('./constants.js') : null);
+
+  if (!Constants) {
+    throw new Error('Tetris.Constants is required before Tetris.Engine');
+  }
+
+  var COLS = Constants.COLS;
+  var BUFFER_ROWS = Constants.BUFFER_ROWS;
+  var TOTAL_ROWS = Constants.TOTAL_ROWS;
+  var PIECE_TYPES = Constants.PIECE_TYPES;
+  var SHAPES = Constants.SHAPES;
+  var SPAWN_POS = Constants.SPAWN_POS;
+  var LOCK_DELAY_MS = Constants.LOCK_DELAY_MS;
+  var MAX_LOCK_RESETS = Constants.MAX_LOCK_RESETS;
+  var LINES_PER_LEVEL = Constants.LINES_PER_LEVEL;
+  var MIN_START_LEVEL = Constants.MIN_START_LEVEL;
+  var MAX_START_LEVEL = Constants.MAX_START_LEVEL;
+  var NEXT_PREVIEW_COUNT = Constants.NEXT_PREVIEW_COUNT;
+  var LINE_SCORES = Constants.LINE_SCORES;
+  var B2B_MULTIPLIER = Constants.B2B_MULTIPLIER;
+  var COMBO_BASE = Constants.COMBO_BASE;
+  var SOFT_DROP_POINTS = Constants.SOFT_DROP_POINTS;
+  var HARD_DROP_POINTS = Constants.HARD_DROP_POINTS;
+
+  function createEmptyBoard() {
+    var board = [];
+    var r, c;
+    for (r = 0; r < TOTAL_ROWS; r++) {
+      var row = [];
+      for (c = 0; c < COLS; c++) {
+        row.push(null);
+      }
+      board.push(row);
+    }
+    return board;
+  }
+
+  function cloneBoard(board) {
+    var copy = [];
+    var r;
+    for (r = 0; r < board.length; r++) {
+      copy.push(board[r].slice());
+    }
+    return copy;
+  }
+
+  function clampStartLevel(level) {
+    var n = Math.floor(Number(level));
+    if (!isFinite(n)) {
+      return MIN_START_LEVEL;
+    }
+    if (n < MIN_START_LEVEL) {
+      return MIN_START_LEVEL;
+    }
+    if (n > MAX_START_LEVEL) {
+      return MAX_START_LEVEL;
+    }
+    return n;
+  }
+
+  function createEngine(options) {
+    var opts = options || {};
+    var rng = typeof opts.rng === 'function' ? opts.rng : Math.random;
+    var nextCount = typeof opts.nextCount === 'number' && opts.nextCount > 0
+      ? Math.floor(opts.nextCount)
+      : NEXT_PREVIEW_COUNT;
+
+    var status = 'menu';
+    var gameOverReason = null;
+    var board = createEmptyBoard();
+    var bag = [];
+    var nextQueue = [];
+    var activePiece = null;
+    var holdPiece = null;
+    var canHold = true;
+
+    var score = 0;
+    var startLevel = MIN_START_LEVEL;
+    var level = MIN_START_LEVEL;
+    var lines = 0;
+    var combo = -1;
+    var backToBack = false;
+
+    var gravityTimerMs = 0;
+    var lockTimerMs = 0;
+    var lockMovesRemaining = MAX_LOCK_RESETS;
+    var lowestRow = 0;
+    var softDropActive = false;
+
+    function refillBag() {
+      var items = PIECE_TYPES.slice();
+      var i, j, tmp;
+      for (i = items.length - 1; i > 0; i--) {
+        j = Math.floor(rng() * (i + 1));
+        if (j < 0) j = 0;
+        if (j > i) j = i;
+        tmp = items[i];
+        items[i] = items[j];
+        items[j] = tmp;
+      }
+      for (i = 0; i < items.length; i++) {
+        bag.push(items[i]);
+      }
+    }
+
+    function pullFromBag() {
+      if (bag.length === 0) {
+        refillBag();
+      }
+      return bag.shift();
+    }
+
+    function fillNextQueue() {
+      while (nextQueue.length < nextCount) {
+        nextQueue.push(pullFromBag());
+      }
+    }
+
+    function collides(type, rot, col, row) {
+      var matrix = SHAPES[type][rot];
+      var r, c, br, bc;
+      for (r = 0; r < matrix.length; r++) {
+        for (c = 0; c < matrix[r].length; c++) {
+          if (!matrix[r][c]) {
+            continue;
+          }
+          bc = col + c;
+          br = row + r;
+          if (bc < 0 || bc >= COLS || br >= TOTAL_ROWS) {
+            return true;
+          }
+          if (br >= 0 && board[br][bc] !== null) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function isGrounded() {
+      if (!activePiece) {
+        return false;
+      }
+      return collides(activePiece.type, activePiece.rot, activePiece.col, activePiece.row + 1);
+    }
+
+    function triggerGameOver(reason, events) {
+      status = 'gameover';
+      gameOverReason = reason;
+      softDropActive = false;
+      events.push({
+        type: 'gameOver',
+        reason: reason,
+        score: score,
+        level: level,
+        lines: lines
+      });
+    }
+
+    function spawnPiece(type, events) {
+      var spawn = SPAWN_POS[type];
+      var rot = 0;
+      var col = spawn.col;
+      var row = spawn.row;
+
+      if (collides(type, rot, col, row)) {
+        activePiece = {
+          type: type,
+          rot: rot,
+          col: col,
+          row: row,
+          matrix: SHAPES[type][rot]
+        };
+        triggerGameOver('block_out', events);
+        return false;
+      }
+
+      if (!collides(type, rot, col, row + 1)) {
+        row += 1;
+      }
+
+      activePiece = {
+        type: type,
+        rot: rot,
+        col: col,
+        row: row,
+        matrix: SHAPES[type][rot]
+      };
+      lowestRow = row;
+      gravityTimerMs = 0;
+      lockTimerMs = 0;
+      lockMovesRemaining = MAX_LOCK_RESETS;
+      return true;
+    }
+
+    function spawnNextFromQueue(events) {
+      fillNextQueue();
+      var nextType = nextQueue.shift();
+      fillNextQueue();
+      return spawnPiece(nextType, events);
+    }
+
+    function registerExtendedPlacementAdjustment() {
+      if (!activePiece) {
+        return;
+      }
+      if (isGrounded() || lockTimerMs > 0) {
+        if (lockMovesRemaining > 0) {
+          lockTimerMs = 0;
+          lockMovesRemaining -= 1;
+        }
+      }
+    }
+
+    function lockActivePiece(events) {
+      if (!activePiece) {
+        return;
+      }
+      var matrix = activePiece.matrix;
+      var lockedCells = [];
+      var allInBuffer = true;
+      var r, c, br, bc;
+
+      for (r = 0; r < matrix.length; r++) {
+        for (c = 0; c < matrix[r].length; c++) {
+          if (!matrix[r][c]) {
+            continue;
+          }
+          bc = activePiece.col + c;
+          br = activePiece.row + r;
+          if (br >= 0 && br < TOTAL_ROWS && bc >= 0 && bc < COLS) {
+            board[br][bc] = activePiece.type;
+            lockedCells.push({ col: bc, row: br });
+          }
+          if (br >= BUFFER_ROWS) {
+            allInBuffer = false;
+          }
+        }
+      }
+
+      events.push({
+        type: 'lock',
+        piece: activePiece.type,
+        cells: lockedCells
+      });
+
+      if (allInBuffer) {
+        activePiece = null;
+        triggerGameOver('lock_out', events);
+        return;
+      }
+
+      var clearedRows = [];
+      var full;
+      for (r = 0; r < TOTAL_ROWS; r++) {
+        full = true;
+        for (c = 0; c < COLS; c++) {
+          if (board[r][c] === null) {
+            full = false;
+            break;
+          }
+        }
+        if (full) {
+          clearedRows.push(r);
+        }
+      }
+
+      if (clearedRows.length > 0) {
+        for (r = clearedRows.length - 1; r >= 0; r--) {
+          board.splice(clearedRows[r], 1);
+        }
+        for (r = 0; r < clearedRows.length; r++) {
+          var emptyRow = [];
+          for (c = 0; c < COLS; c++) {
+            emptyRow.push(null);
+          }
+          board.unshift(emptyRow);
+        }
+
+        var count = clearedRows.length;
+        var preClearLevel = level;
+        var isTetris = count === 4;
+        var isBackToBack = isTetris && backToBack;
+        var basePoints = (LINE_SCORES[count] || 0) * preClearLevel;
+        if (isBackToBack) {
+          basePoints = Math.round(basePoints * B2B_MULTIPLIER);
+        }
+        backToBack = isTetris;
+        combo += 1;
+        var comboBonus = combo > 0 ? COMBO_BASE * combo * preClearLevel : 0;
+        var points = basePoints + comboBonus;
+
+        score += points;
+        lines += count;
+
+        events.push({
+          type: 'lineClear',
+          count: count,
+          rows: clearedRows,
+          points: points,
+          basePoints: basePoints,
+          comboBonus: comboBonus,
+          isTetris: isTetris,
+          isBackToBack: isBackToBack,
+          combo: combo,
+          preClearLevel: preClearLevel
+        });
+
+        var newLevel = startLevel + Math.floor(lines / LINES_PER_LEVEL);
+        if (newLevel > level) {
+          level = newLevel;
+          events.push({
+            type: 'levelUp',
+            level: level
+          });
+        }
+      } else {
+        combo = -1;
+      }
+
+      canHold = true;
+      activePiece = null;
+      spawnNextFromQueue(events);
+    }
+
+    function getGhostY() {
+      if (!activePiece) {
+        return 0;
+      }
+      var row = activePiece.row;
+      while (!collides(activePiece.type, activePiece.rot, activePiece.col, row + 1)) {
+        row += 1;
+      }
+      return row;
+    }
+
+    function start(initialLevel) {
+      var events = [];
+      startLevel = clampStartLevel(initialLevel !== undefined ? initialLevel : MIN_START_LEVEL);
+      level = startLevel;
+      score = 0;
+      lines = 0;
+      combo = -1;
+      backToBack = false;
+      holdPiece = null;
+      canHold = true;
+      gameOverReason = null;
+      softDropActive = false;
+      board = createEmptyBoard();
+      bag = [];
+      nextQueue = [];
+      status = 'playing';
+
+      fillNextQueue();
+      spawnNextFromQueue(events);
+
+      return { events: events };
+    }
+
+    function pause() {
+      if (status === 'playing') {
+        status = 'paused';
+        softDropActive = false;
+      }
+    }
+
+    function resume() {
+      if (status === 'paused') {
+        status = 'playing';
+      }
+    }
+
+    function togglePause() {
+      if (status === 'playing') {
+        pause();
+      } else if (status === 'paused') {
+        resume();
+      }
+      return status;
+    }
+
+    function reset() {
+      status = 'menu';
+      gameOverReason = null;
+      board = createEmptyBoard();
+      bag = [];
+      nextQueue = [];
+      activePiece = null;
+      holdPiece = null;
+      canHold = true;
+      score = 0;
+      level = startLevel;
+      lines = 0;
+      combo = -1;
+      backToBack = false;
+      gravityTimerMs = 0;
+      lockTimerMs = 0;
+      lockMovesRemaining = MAX_LOCK_RESETS;
+      lowestRow = 0;
+      softDropActive = false;
+    }
+
+    function step(dtMs) {
+      var events = [];
+      if (status !== 'playing' || !activePiece || typeof dtMs !== 'number' || !isFinite(dtMs) || dtMs <= 0) {
+        return { events: events };
+      }
+
+      var remaining = dtMs;
+      var softDropCells = 0;
+
+      while (remaining > 0 && status === 'playing' && activePiece) {
+        if (!isGrounded()) {
+          var interval = softDropActive ? Constants.getSoftDropMs(level) : Constants.getGravityMs(level);
+          var needed = Math.max(0, interval - gravityTimerMs);
+          if (remaining >= needed) {
+            remaining -= needed;
+            gravityTimerMs = 0;
+            activePiece.row += 1;
+            if (activePiece.row > lowestRow) {
+              lowestRow = activePiece.row;
+              lockMovesRemaining = MAX_LOCK_RESETS;
+              lockTimerMs = 0;
+            }
+            if (softDropActive) {
+              score += SOFT_DROP_POINTS;
+              softDropCells += 1;
+            }
+          } else {
+            gravityTimerMs += remaining;
+            remaining = 0;
+          }
+        } else {
+          gravityTimerMs = 0;
+          var lockNeeded = Math.max(0, LOCK_DELAY_MS - lockTimerMs);
+          if (remaining >= lockNeeded) {
+            remaining -= lockNeeded;
+            lockTimerMs = LOCK_DELAY_MS;
+            if (softDropCells > 0) {
+              events.push({ type: 'softDrop', cells: softDropCells });
+              softDropCells = 0;
+            }
+            lockActivePiece(events);
+          } else {
+            lockTimerMs += remaining;
+            remaining = 0;
+          }
+        }
+      }
+
+      if (softDropCells > 0) {
+        events.push({ type: 'softDrop', cells: softDropCells });
+      }
+
+      return { events: events };
+    }
+
+    function moveHorizontal(dir) {
+      if (status !== 'playing' || !activePiece) {
+        return { changed: false, events: [] };
+      }
+      var nextCol = activePiece.col + dir;
+      if (collides(activePiece.type, activePiece.rot, nextCol, activePiece.row)) {
+        return { changed: false, events: [] };
+      }
+      activePiece.col = nextCol;
+      registerExtendedPlacementAdjustment();
+      return {
+        changed: true,
+        events: [{ type: 'move', dir: dir }]
+      };
+    }
+
+    function moveLeft() {
+      return moveHorizontal(-1);
+    }
+
+    function moveRight() {
+      return moveHorizontal(1);
+    }
+
+    function rotate(delta) {
+      if (status !== 'playing' || !activePiece) {
+        return { changed: false, kicked: false, events: [] };
+      }
+      if (activePiece.type === 'O') {
+        return { changed: false, kicked: false, events: [] };
+      }
+      var fromRot = activePiece.rot;
+      var toRot = ((fromRot + delta) % 4 + 4) % 4;
+      var kicks = Constants.getWallKicks(activePiece.type, fromRot, toRot);
+      var i, dCol, dRow, nextCol, nextRow;
+
+      for (i = 0; i < kicks.length; i++) {
+        dCol = kicks[i][0];
+        dRow = kicks[i][1];
+        nextCol = activePiece.col + dCol;
+        nextRow = activePiece.row + dRow;
+        if (!collides(activePiece.type, toRot, nextCol, nextRow)) {
+          activePiece.rot = toRot;
+          activePiece.col = nextCol;
+          activePiece.row = nextRow;
+          activePiece.matrix = SHAPES[activePiece.type][toRot];
+          if (activePiece.row > lowestRow) {
+            lowestRow = activePiece.row;
+            lockMovesRemaining = MAX_LOCK_RESETS;
+            lockTimerMs = 0;
+          } else {
+            registerExtendedPlacementAdjustment();
+          }
+          var kicked = i > 0;
+          return {
+            changed: true,
+            kicked: kicked,
+            events: [{ type: 'rotate', kicked: kicked }]
+          };
+        }
+      }
+
+      return { changed: false, kicked: false, events: [] };
+    }
+
+    function rotateCW() {
+      return rotate(1);
+    }
+
+    function rotateCCW() {
+      return rotate(3);
+    }
+
+    function setSoftDrop(active) {
+      softDropActive = Boolean(active);
+    }
+
+    function softDropStep() {
+      if (status !== 'playing' || !activePiece) {
+        return { changed: false, events: [] };
+      }
+      if (collides(activePiece.type, activePiece.rot, activePiece.col, activePiece.row + 1)) {
+        return { changed: false, events: [] };
+      }
+      activePiece.row += 1;
+      score += SOFT_DROP_POINTS;
+      gravityTimerMs = 0;
+      if (activePiece.row > lowestRow) {
+        lowestRow = activePiece.row;
+        lockMovesRemaining = MAX_LOCK_RESETS;
+        lockTimerMs = 0;
+      }
+      return {
+        changed: true,
+        events: [{ type: 'softDrop', cells: 1 }]
+      };
+    }
+
+    function hardDrop() {
+      if (status !== 'playing' || !activePiece) {
+        return { changed: false, events: [] };
+      }
+      var events = [];
+      var startY = activePiece.row;
+      var endY = getGhostY();
+      var cells = endY - startY;
+
+      activePiece.row = endY;
+      score += cells * HARD_DROP_POINTS;
+
+      events.push({
+        type: 'hardDrop',
+        piece: activePiece.type,
+        col: activePiece.col,
+        width: activePiece.matrix[0].length,
+        startY: startY,
+        endY: endY,
+        cells: cells
+      });
+
+      lockActivePiece(events);
+      return { changed: true, events: events };
+    }
+
+    function hold() {
+      if (status !== 'playing' || !activePiece || !canHold) {
+        return { changed: false, events: [] };
+      }
+      var events = [];
+      var prevType = activePiece.type;
+      canHold = false;
+      events.push({ type: 'hold', piece: prevType });
+
+      if (holdPiece === null) {
+        holdPiece = prevType;
+        spawnNextFromQueue(events);
+      } else {
+        var swapType = holdPiece;
+        holdPiece = prevType;
+        spawnPiece(swapType, events);
+      }
+
+      return { changed: true, events: events };
+    }
+
+    function getSnapshot() {
+      return {
+        status: status,
+        gameOverReason: gameOverReason,
+        board: cloneBoard(board),
+        activePiece: activePiece ? {
+          type: activePiece.type,
+          rot: activePiece.rot,
+          col: activePiece.col,
+          row: activePiece.row,
+          matrix: activePiece.matrix
+        } : null,
+        ghostY: getGhostY(),
+        holdPiece: holdPiece,
+        canHold: canHold,
+        nextQueue: nextQueue.slice(),
+        score: score,
+        level: level,
+        startLevel: startLevel,
+        lines: lines,
+        combo: combo,
+        backToBack: backToBack,
+        lockTimerMs: lockTimerMs,
+        lockDelayMs: LOCK_DELAY_MS,
+        lockMovesRemaining: lockMovesRemaining,
+        isGrounded: isGrounded()
+      };
+    }
+
+    return {
+      start: start,
+      pause: pause,
+      resume: resume,
+      togglePause: togglePause,
+      reset: reset,
+      step: step,
+      moveLeft: moveLeft,
+      moveRight: moveRight,
+      rotateCW: rotateCW,
+      rotateCCW: rotateCCW,
+      setSoftDrop: setSoftDrop,
+      softDropStep: softDropStep,
+      hardDrop: hardDrop,
+      hold: hold,
+      getGhostY: getGhostY,
+      getSnapshot: getSnapshot
+    };
+  }
+
+  var api = {
+    createEngine: createEngine
+  };
+
+  root.Tetris = root.Tetris || {};
+  root.Tetris.Engine = api;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+  </script>
+  <script>
+(function (root) {
+  'use strict';
+
+  var Constants = (root.Tetris && root.Tetris.Constants) ||
+    (typeof require === 'function' ? require('./constants.js') : null);
+
+  if (!Constants) {
+    throw new Error('Tetris.Constants is required before Tetris.Renderer');
+  }
+
+  var COLS = Constants.COLS;
+  var VISIBLE_ROWS = Constants.VISIBLE_ROWS;
+  var BUFFER_ROWS = Constants.BUFFER_ROWS;
+  var SHAPES = Constants.SHAPES;
+  var COLORS = Constants.COLORS;
+  var MAX_PARTICLES = 120;
+
+  function drawBeveledBlock(ctx, x, y, size, colorObj, alpha, pulseRatio) {
+    if (size <= 0) {
+      return;
+    }
+    var pad = Math.max(1, Math.floor(size * 0.05));
+    var bx = x + pad;
+    var by = y + pad;
+    var bs = Math.max(2, size - pad * 2);
+    var bevel = Math.max(2, Math.floor(bs * 0.16));
+
+    ctx.save();
+    ctx.globalAlpha = alpha !== undefined ? alpha : 1;
+
+    // Base fill
+    ctx.fillStyle = colorObj.fill;
+    ctx.fillRect(bx, by, bs, bs);
+
+    // Top & Left highlight
+    ctx.fillStyle = colorObj.light;
+    ctx.fillRect(bx, by, bs, bevel);
+    ctx.fillRect(bx, by, bevel, bs);
+
+    // Bottom & Right shadow
+    ctx.fillStyle = colorObj.dark;
+    ctx.fillRect(bx, by + bs - bevel, bs, bevel);
+    ctx.fillRect(bx + bs - bevel, by, bevel, bs);
+
+    // Inner glass sheen
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.fillRect(bx + bevel, by + bevel, Math.max(1, bs - bevel * 2), Math.max(1, Math.floor((bs - bevel * 2) * 0.45)));
+
+    // Subtle lock-delay pulse overlay when grounded
+    if (pulseRatio && pulseRatio > 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.28 * pulseRatio).toFixed(3) + ')';
+      ctx.fillRect(bx, by, bs, bs);
+    }
+
+    ctx.restore();
+  }
+
+  function drawGhostBlock(ctx, x, y, size, colorObj) {
+    var pad = Math.max(1, Math.floor(size * 0.08));
+    var bx = x + pad;
+    var by = y + pad;
+    var bs = Math.max(2, size - pad * 2);
+
+    ctx.save();
+    ctx.fillStyle = colorObj.ghostFill;
+    ctx.fillRect(bx, by, bs, bs);
+    ctx.strokeStyle = colorObj.ghostStroke;
+    ctx.lineWidth = Math.max(1, Math.floor(size * 0.07));
+    ctx.strokeRect(bx + 0.5, by + 0.5, bs - 1, bs - 1);
+    ctx.restore();
+  }
+
+  function drawMiniPiece(ctx, type, centerX, centerY, cellSize, alpha) {
+    if (!type || !SHAPES[type] || !COLORS[type]) {
+      return;
+    }
+    var matrix = SHAPES[type][0];
+    var colorObj = COLORS[type];
+    var minR = 4, maxR = -1, minC = 4, maxC = -1;
+    var r, c;
+
+    for (r = 0; r < matrix.length; r++) {
+      for (c = 0; c < matrix[r].length; c++) {
+        if (matrix[r][c]) {
+          if (r < minR) minR = r;
+          if (r > maxR) maxR = r;
+          if (c < minC) minC = c;
+          if (c > maxC) maxC = c;
+        }
+      }
+    }
+    if (maxR < minR) {
+      return;
+    }
+
+    var pw = (maxC - minC + 1) * cellSize;
+    var ph = (maxR - minR + 1) * cellSize;
+    var startX = Math.round(centerX - pw / 2);
+    var startY = Math.round(centerY - ph / 2);
+
+    for (r = minR; r <= maxR; r++) {
+      for (c = minC; c <= maxC; c++) {
+        if (matrix[r][c]) {
+          drawBeveledBlock(
+            ctx,
+            startX + (c - minC) * cellSize,
+            startY + (r - minR) * cellSize,
+            cellSize,
+            colorObj,
+            alpha,
+            0
+          );
+        }
+      }
+    }
+  }
+
+  function createRenderer(options) {
+    var opts = options || {};
+    var boardCanvas = opts.boardCanvas || null;
+    var holdCanvas = opts.holdCanvas || null;
+    var nextCanvas = opts.nextCanvas || null;
+    var boardStage = opts.boardStage || null;
+
+    var cellSize = 28;
+    var dpr = 1;
+    var boardCssWidth = COLS * cellSize;
+    var boardCssHeight = VISIBLE_ROWS * cellSize;
+    var isCompactNext = false;
+
+    var particles = [];
+    var rowFlashes = [];
+    var dropTrails = [];
+    var callouts = [];
+
+    function setupCanvas(canvas, cssW, cssH, scale) {
+      if (!canvas) {
+        return;
+      }
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      canvas.width = Math.max(1, Math.round(cssW * scale));
+      canvas.height = Math.max(1, Math.round(cssH * scale));
+    }
+
+    function resize() {
+      dpr = Math.min(
+        typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1,
+        2
+      );
+
+      var availW = boardStage && boardStage.clientWidth ? boardStage.clientWidth - 8 : 300;
+      var availH = boardStage && boardStage.clientHeight ? boardStage.clientHeight - 8 : 600;
+      cellSize = Math.max(12, Math.floor(Math.min(availW / COLS, availH / VISIBLE_ROWS)));
+      boardCssWidth = COLS * cellSize;
+      boardCssHeight = VISIBLE_ROWS * cellSize;
+      setupCanvas(boardCanvas, boardCssWidth, boardCssHeight, dpr);
+
+      var vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+      isCompactNext = vw <= 820;
+
+      if (holdCanvas) {
+        var holdSize = isCompactNext ? 48 : 88;
+        setupCanvas(holdCanvas, holdSize, holdSize, dpr);
+      }
+
+      if (nextCanvas) {
+        if (isCompactNext) {
+          setupCanvas(nextCanvas, 126, 44, dpr);
+        } else {
+          setupCanvas(nextCanvas, 96, 228, dpr);
+        }
+      }
+    }
+
+    function spawnParticles(row, colorObj) {
+      var visRow = row - BUFFER_ROWS;
+      if (visRow < 0 || visRow >= VISIBLE_ROWS) {
+        return;
+      }
+      var c, x, y;
+      for (c = 0; c < COLS; c++) {
+        if (particles.length >= MAX_PARTICLES) {
+          break;
+        }
+        x = (c + 0.5) * cellSize;
+        y = (visRow + 0.5) * cellSize;
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 180,
+          vy: (Math.random() - 0.7) * 160,
+          size: Math.max(3, Math.floor(cellSize * 0.22)),
+          color: colorObj ? colorObj.light : '#ffffff',
+          life: 0,
+          maxLife: 380
+        });
+      }
+    }
+
+    function addCallout(text, color) {
+      callouts.push({
+        text: text,
+        color: color || '#e2e8f0',
+        life: 0,
+        maxLife: 950
+      });
+      if (callouts.length > 4) {
+        callouts.shift();
+      }
+    }
+
+    function triggerEffects(events) {
+      if (!events || !events.length) {
+        return;
+      }
+      var i, ev, r;
+      for (i = 0; i < events.length; i++) {
+        ev = events[i];
+        if (ev.type === 'hardDrop' && ev.cells > 0) {
+          dropTrails.push({
+            col: ev.col,
+            width: ev.width || 3,
+            startY: Math.max(0, ev.startY - BUFFER_ROWS),
+            endY: Math.max(0, ev.endY - BUFFER_ROWS),
+            color: (COLORS[ev.piece] && COLORS[ev.piece].glow) || 'rgba(255,255,255,0.35)',
+            life: 0,
+            maxLife: 180
+          });
+        } else if (ev.type === 'lineClear') {
+          for (r = 0; r < ev.rows.length; r++) {
+            rowFlashes.push({
+              visRow: ev.rows[r] - BUFFER_ROWS,
+              life: 0,
+              maxLife: 240
+            });
+            spawnParticles(ev.rows[r], COLORS.I);
+          }
+          if (ev.isTetris) {
+            addCallout('¡TETRIS!', '#22d3ee');
+          }
+          if (ev.isBackToBack) {
+            addCallout('BACK TO BACK', '#facc15');
+          }
+          if (ev.combo > 0) {
+            addCallout('COMBO ×' + (ev.combo + 1), '#c084fc');
+          }
+        } else if (ev.type === 'levelUp') {
+          addCallout('¡NIVEL ' + ev.level + '!', '#4ade80');
+        }
+      }
+    }
+
+    function updateEffects(dtMs) {
+      var dtSec = (dtMs || 0) / 1000;
+      var i, p;
+
+      for (i = particles.length - 1; i >= 0; i--) {
+        p = particles[i];
+        p.life += dtMs;
+        if (p.life >= p.maxLife) {
+          particles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dtSec;
+        p.y += p.vy * dtSec;
+        p.vy += 320 * dtSec;
+      }
+
+      for (i = rowFlashes.length - 1; i >= 0; i--) {
+        rowFlashes[i].life += dtMs;
+        if (rowFlashes[i].life >= rowFlashes[i].maxLife) {
+          rowFlashes.splice(i, 1);
+        }
+      }
+
+      for (i = dropTrails.length - 1; i >= 0; i--) {
+        dropTrails[i].life += dtMs;
+        if (dropTrails[i].life >= dropTrails[i].maxLife) {
+          dropTrails.splice(i, 1);
+        }
+      }
+
+      for (i = callouts.length - 1; i >= 0; i--) {
+        callouts[i].life += dtMs;
+        if (callouts[i].life >= callouts[i].maxLife) {
+          callouts.splice(i, 1);
+        }
+      }
+    }
+
+    function renderBoard(snapshot) {
+      if (!boardCanvas) {
+        return;
+      }
+      var ctx = boardCanvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Deep dark glass backdrop
+      ctx.fillStyle = '#090d1a';
+      ctx.fillRect(0, 0, boardCssWidth, boardCssHeight);
+
+      // Subtle playfield grid
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+      ctx.lineWidth = 1;
+      var c, r;
+      ctx.beginPath();
+      for (c = 1; c < COLS; c++) {
+        ctx.moveTo(c * cellSize + 0.5, 0);
+        ctx.lineTo(c * cellSize + 0.5, boardCssHeight);
+      }
+      for (r = 1; r < VISIBLE_ROWS; r++) {
+        ctx.moveTo(0, r * cellSize + 0.5);
+        ctx.lineTo(boardCssWidth, r * cellSize + 0.5);
+      }
+      ctx.stroke();
+
+      // Hard drop trails
+      var i, tr, alpha;
+      for (i = 0; i < dropTrails.length; i++) {
+        tr = dropTrails[i];
+        alpha = 1 - tr.life / tr.maxLife;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.45;
+        ctx.fillStyle = tr.color;
+        ctx.fillRect(
+          tr.col * cellSize,
+          tr.startY * cellSize,
+          tr.width * cellSize,
+          Math.max(0, (tr.endY - tr.startY) * cellSize)
+        );
+        ctx.restore();
+      }
+
+      // Locked board cells
+      if (snapshot && snapshot.board) {
+        for (r = BUFFER_ROWS; r < BUFFER_ROWS + VISIBLE_ROWS; r++) {
+          var visRow = r - BUFFER_ROWS;
+          for (c = 0; c < COLS; c++) {
+            var cellType = snapshot.board[r][c];
+            if (cellType && COLORS[cellType]) {
+              drawBeveledBlock(ctx, c * cellSize, visRow * cellSize, cellSize, COLORS[cellType], 1, 0);
+            }
+          }
+        }
+      }
+
+      // Active & Ghost piece
+      if (snapshot && snapshot.activePiece && snapshot.status !== 'menu') {
+        var piece = snapshot.activePiece;
+        var pColor = COLORS[piece.type];
+        var matrix = piece.matrix;
+
+        if (snapshot.ghostY !== undefined && snapshot.ghostY >= piece.row) {
+          for (r = 0; r < matrix.length; r++) {
+            for (c = 0; c < matrix[r].length; c++) {
+              if (!matrix[r][c]) {
+                continue;
+              }
+              var gVisRow = snapshot.ghostY + r - BUFFER_ROWS;
+              if (gVisRow >= 0 && gVisRow < VISIBLE_ROWS) {
+                drawGhostBlock(ctx, (piece.col + c) * cellSize, gVisRow * cellSize, cellSize, pColor);
+              }
+            }
+          }
+        }
+
+        var pulseRatio = 0;
+        if (snapshot.isGrounded && snapshot.lockDelayMs > 0) {
+          pulseRatio = Math.min(1, snapshot.lockTimerMs / snapshot.lockDelayMs);
+        }
+
+        for (r = 0; r < matrix.length; r++) {
+          for (c = 0; c < matrix[r].length; c++) {
+            if (!matrix[r][c]) {
+              continue;
+            }
+            var aVisRow = piece.row + r - BUFFER_ROWS;
+            if (aVisRow >= 0 && aVisRow < VISIBLE_ROWS) {
+              drawBeveledBlock(
+                ctx,
+                (piece.col + c) * cellSize,
+                aVisRow * cellSize,
+                cellSize,
+                pColor,
+                1,
+                pulseRatio
+              );
+            }
+          }
+        }
+      }
+
+      // Line clear flashes
+      var fl;
+      for (i = 0; i < rowFlashes.length; i++) {
+        fl = rowFlashes[i];
+        if (fl.visRow >= 0 && fl.visRow < VISIBLE_ROWS) {
+          alpha = 1 - fl.life / fl.maxLife;
+          ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.75 * alpha).toFixed(3) + ')';
+          ctx.fillRect(0, fl.visRow * cellSize, boardCssWidth, cellSize);
+        }
+      }
+
+      // Particles
+      var p;
+      for (i = 0; i < particles.length; i++) {
+        p = particles[i];
+        alpha = 1 - p.life / p.maxLife;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        ctx.restore();
+      }
+
+      // Floating callouts
+      var co;
+      for (i = 0; i < callouts.length; i++) {
+        co = callouts[i];
+        var prog = co.life / co.maxLife;
+        alpha = prog < 0.2 ? prog / 0.2 : Math.max(0, 1 - (prog - 0.2) / 0.8);
+        var cy = boardCssHeight * 0.34 - prog * 28 - i * 24;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = '700 ' + Math.max(14, Math.round(cellSize * 0.72)) + 'px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+        ctx.fillText(co.text, boardCssWidth / 2 + 1, cy + 2);
+        ctx.fillStyle = co.color;
+        ctx.fillText(co.text, boardCssWidth / 2, cy);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function renderHold(snapshot) {
+      if (!holdCanvas) {
+        return;
+      }
+      var ctx = holdCanvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      var w = parseFloat(holdCanvas.style.width) || 88;
+      var h = parseFloat(holdCanvas.style.height) || 88;
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      if (snapshot && snapshot.holdPiece) {
+        var miniCell = Math.max(9, Math.floor(Math.min(w, h) * 0.21));
+        var alpha = snapshot.canHold ? 1 : 0.4;
+        drawMiniPiece(ctx, snapshot.holdPiece, w / 2, h / 2, miniCell, alpha);
+      }
+      ctx.restore();
+    }
+
+    function renderNext(snapshot) {
+      if (!nextCanvas) {
+        return;
+      }
+      var ctx = nextCanvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      var w = parseFloat(nextCanvas.style.width) || 96;
+      var h = parseFloat(nextCanvas.style.height) || 228;
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      var queue = snapshot && snapshot.nextQueue ? snapshot.nextQueue : [];
+      var count = Math.min(3, queue.length);
+      var i;
+      if (isCompactNext) {
+        var slotW = w / 3;
+        var miniCellH = Math.max(7, Math.floor(Math.min(slotW, h) * 0.20));
+        for (i = 0; i < count; i++) {
+          drawMiniPiece(ctx, queue[i], slotW * (i + 0.5), h / 2, miniCellH, i === 0 ? 1 : 0.78);
+        }
+      } else {
+        var slotH = h / 3;
+        var miniCellV = Math.max(10, Math.floor(Math.min(w, slotH) * 0.21));
+        for (i = 0; i < count; i++) {
+          drawMiniPiece(ctx, queue[i], w / 2, slotH * (i + 0.5), miniCellV, 1);
+        }
+      }
+      ctx.restore();
+    }
+
+    function render(snapshot, dtMs) {
+      updateEffects(dtMs || 0);
+      renderBoard(snapshot);
+      renderHold(snapshot);
+      renderNext(snapshot);
+    }
+
+    function getBoardMetrics() {
+      var rect = boardCanvas && typeof boardCanvas.getBoundingClientRect === 'function'
+        ? boardCanvas.getBoundingClientRect()
+        : { left: 0, top: 0, width: boardCssWidth, height: boardCssHeight };
+      return {
+        cellSize: cellSize,
+        width: boardCssWidth,
+        height: boardCssHeight,
+        rect: rect
+      };
+    }
+
+    function resetEffects() {
+      particles = [];
+      rowFlashes = [];
+      dropTrails = [];
+      callouts = [];
+    }
+
+    function dispose() {
+      resetEffects();
+    }
+
+    return {
+      resize: resize,
+      triggerEffects: triggerEffects,
+      render: render,
+      getBoardMetrics: getBoardMetrics,
+      resetEffects: resetEffects,
+      dispose: dispose
+    };
+  }
+
+  var api = {
+    createRenderer: createRenderer
+  };
+
+  root.Tetris = root.Tetris || {};
+  root.Tetris.Renderer = api;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+  </script>
+  <script>
+(function (root) {
+  'use strict';
+
+  var Constants = (root.Tetris && root.Tetris.Constants) ||
+    (typeof require === 'function' ? require('./constants.js') : null);
+
+  var DAS_MS = Constants ? Constants.DAS_MS : 160;
+  var ARR_MS = Constants ? Constants.ARR_MS : 35;
+  var GAMEPAD_DEADZONE_X = Constants ? Constants.GAMEPAD_DEADZONE_X : 0.30;
+  var GAMEPAD_SOFT_DROP_Y = Constants ? Constants.GAMEPAD_SOFT_DROP_Y : 0.45;
+  var SENS_MIN = Constants ? Constants.TOUCH_SENSITIVITY_MIN : 1;
+  var SENS_MAX = Constants ? Constants.TOUCH_SENSITIVITY_MAX : 10;
+  var SENS_DEFAULT = Constants ? Constants.TOUCH_SENSITIVITY_DEFAULT : 5;
+
+  function clampSensitivity(value) {
+    var n = Math.round(Number(value));
+    if (!isFinite(n)) {
+      return SENS_DEFAULT;
+    }
+    if (n < SENS_MIN) return SENS_MIN;
+    if (n > SENS_MAX) return SENS_MAX;
+    return n;
+  }
+
+  function computeTouchThresholds(sensitivity, cellSizePx) {
+    var s = clampSensitivity(sensitivity !== undefined ? sensitivity : SENS_DEFAULT);
+    var cell = (typeof cellSizePx === 'number' && isFinite(cellSizePx) && cellSizePx > 0) ? cellSizePx : 32;
+
+    // Higher sensitivity => smaller factor => fewer px needed per cell/flick
+    var factor = 1.5 - (s - 1) * (0.9 / 9);
+    var pxPerCell = Math.max(12, Math.round(cell * factor));
+    var softDropStepPx = Math.max(10, Math.round(cell * 0.65 * factor));
+    var flickMinDistPx = Math.max(30, Math.round(44 * factor));
+    var flickMinVelPxPerMs = Number((0.42 - (s - 1) * (0.14 / 9)).toFixed(3));
+    var holdSwipeMinPx = Math.max(30, Math.round(40 * factor));
+
+    return {
+      sensitivity: s,
+      pxPerCell: pxPerCell,
+      softDropStepPx: softDropStepPx,
+      flickMinDistPx: flickMinDistPx,
+      flickMinVelPxPerMs: flickMinVelPxPerMs,
+      flickWindowMs: 260,
+      holdSwipeMinPx: holdSwipeMinPx,
+      holdWindowMs: 260,
+      tapMaxDistPx: 12,
+      tapMaxDurationMs: 260
+    };
+  }
+
+  function applyDeadzone(value, deadzone) {
+    var dz = typeof deadzone === 'number' && isFinite(deadzone) ? deadzone : GAMEPAD_DEADZONE_X;
+    if (typeof value !== 'number' || !isFinite(value)) {
+      return 0;
+    }
+    return Math.abs(value) < dz ? 0 : value;
+  }
+
+  function createDasArrState(dasMs, arrMs) {
+    var das = typeof dasMs === 'number' && isFinite(dasMs) ? dasMs : DAS_MS;
+    var arr = typeof arrMs === 'number' && isFinite(arrMs) && arrMs > 0 ? arrMs : ARR_MS;
+
+    var leftHeld = false;
+    var rightHeld = false;
+    var activeDir = 0; // -1, 0, 1
+    var pendingInitial = false;
+    var dasElapsed = 0;
+    var arrElapsed = 0;
+    var repeating = false;
+
+    function setActiveDir(dir) {
+      if (dir === activeDir) {
+        return;
+      }
+      activeDir = dir;
+      dasElapsed = 0;
+      arrElapsed = 0;
+      repeating = false;
+      pendingInitial = dir !== 0;
+    }
+
+    function press(dir) {
+      if (dir === -1) {
+        if (leftHeld && activeDir === -1) return;
+        leftHeld = true;
+        setActiveDir(-1);
+      } else if (dir === 1) {
+        if (rightHeld && activeDir === 1) return;
+        rightHeld = true;
+        setActiveDir(1);
+      }
+    }
+
+    function release(dir) {
+      if (dir === -1) {
+        leftHeld = false;
+        if (activeDir === -1) {
+          setActiveDir(rightHeld ? 1 : 0);
+        }
+      } else if (dir === 1) {
+        rightHeld = false;
+        if (activeDir === 1) {
+          setActiveDir(leftHeld ? -1 : 0);
+        }
+      }
+    }
+
+    function reset() {
+      leftHeld = false;
+      rightHeld = false;
+      activeDir = 0;
+      pendingInitial = false;
+      dasElapsed = 0;
+      arrElapsed = 0;
+      repeating = false;
+    }
+
+    function update(dtMs) {
+      if (activeDir === 0) {
+        return { steps: 0, dir: 0 };
+      }
+      var steps = 0;
+      if (pendingInitial) {
+        steps += 1;
+        pendingInitial = false;
+      }
+      var dt = typeof dtMs === 'number' && isFinite(dtMs) && dtMs > 0 ? dtMs : 0;
+      if (!repeating) {
+        dasElapsed += dt;
+        if (dasElapsed >= das) {
+          repeating = true;
+          var leftover = dasElapsed - das;
+          steps += 1;
+          arrElapsed = leftover;
+          while (arrElapsed >= arr) {
+            arrElapsed -= arr;
+            steps += 1;
+          }
+        }
+      } else {
+        arrElapsed += dt;
+        while (arrElapsed >= arr) {
+          arrElapsed -= arr;
+          steps += 1;
+        }
+      }
+      return { steps: steps, dir: activeDir };
+    }
+
+    return {
+      press: press,
+      release: release,
+      reset: reset,
+      update: update
+    };
+  }
+
+  function createInputController(options) {
+    var opts = options || {};
+    var boardElement = opts.boardElement || null;
+    var holdElement = opts.holdElement || null;
+    var getBoardMetrics = typeof opts.getBoardMetrics === 'function' ? opts.getBoardMetrics : function () { return { cellSize: 32 }; };
+    var getGameStatus = typeof opts.getGameStatus === 'function' ? opts.getGameStatus : function () { return 'playing'; };
+    var isModalOpen = typeof opts.isModalOpen === 'function' ? opts.isModalOpen : function () { return false; };
+    var onAction = typeof opts.onAction === 'function' ? opts.onAction : function () {};
+    var onUserGesture = typeof opts.onUserGesture === 'function' ? opts.onUserGesture : function () {};
+    var onGamepadChange = typeof opts.onGamepadChange === 'function' ? opts.onGamepadChange : function () {};
+
+    var sensitivity = clampSensitivity(opts.sensitivity);
+    var kbDas = createDasArrState(DAS_MS, ARR_MS);
+    var gpDas = createDasArrState(DAS_MS, ARR_MS);
+
+    var kbSoftDrop = false;
+    var gpSoftDrop = false;
+    var gpPrevButtons = {};
+    var gpConnectedState = false;
+    var gpActiveId = '';
+
+    // Touch state
+    var touchState = null;
+
+    function emit(action) {
+      onAction(action);
+    }
+
+    function setSensitivity(val) {
+      sensitivity = clampSensitivity(val);
+    }
+
+    function syncSoftDrop() {
+      var active = kbSoftDrop || gpSoftDrop;
+      emit(active ? 'softDropStart' : 'softDropEnd');
+    }
+
+    function clearAll() {
+      kbDas.reset();
+      gpDas.reset();
+      if (kbSoftDrop || gpSoftDrop) {
+        kbSoftDrop = false;
+        gpSoftDrop = false;
+        emit('softDropEnd');
+      }
+      touchState = null;
+    }
+
+    // --- Keyboard ---
+    function onKeyDown(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+      var code = e.code || e.key;
+      var status = getGameStatus();
+      var modalOpen = isModalOpen();
+
+      var gameCodes = {
+        ArrowLeft: true,
+        ArrowRight: true,
+        ArrowDown: true,
+        ArrowUp: true,
+        Space: true,
+        KeyZ: true,
+        KeyX: true,
+        KeyC: true,
+        ShiftLeft: true,
+        ShiftRight: true,
+        KeyP: true,
+        Escape: true
+      };
+
+      if (gameCodes[code] && !modalOpen) {
+        e.preventDefault();
+      }
+
+      onUserGesture();
+
+      if (modalOpen) {
+        return;
+      }
+
+      if (code === 'KeyP' || code === 'Escape') {
+        if (!e.repeat && (status === 'playing' || status === 'paused')) {
+          emit('pauseToggle');
+        }
+        return;
+      }
+
+      if (status !== 'playing') {
+        return;
+      }
+
+      if (code === 'ArrowLeft') {
+        if (!e.repeat) {
+          kbDas.press(-1);
+          var resL = kbDas.update(0);
+          for (var il = 0; il < resL.steps; il++) emit('moveLeft');
+        }
+      } else if (code === 'ArrowRight') {
+        if (!e.repeat) {
+          kbDas.press(1);
+          var resR = kbDas.update(0);
+          for (var ir = 0; ir < resR.steps; ir++) emit('moveRight');
+        }
+      } else if (code === 'ArrowDown') {
+        if (!kbSoftDrop) {
+          kbSoftDrop = true;
+          syncSoftDrop();
+        }
+      } else if (code === 'ArrowUp' || code === 'KeyX') {
+        if (!e.repeat) emit('rotateCW');
+      } else if (code === 'KeyZ') {
+        if (!e.repeat) emit('rotateCCW');
+      } else if (code === 'Space') {
+        if (!e.repeat) emit('hardDrop');
+      } else if (code === 'KeyC' || code === 'ShiftLeft' || code === 'ShiftRight') {
+        if (!e.repeat) emit('hold');
+      }
+    }
+
+    function onKeyUp(e) {
+      var code = e.code || e.key;
+      if (code === 'ArrowLeft') {
+        kbDas.release(-1);
+      } else if (code === 'ArrowRight') {
+        kbDas.release(1);
+      } else if (code === 'ArrowDown') {
+        if (kbSoftDrop) {
+          kbSoftDrop = false;
+          syncSoftDrop();
+        }
+      }
+    }
+
+    // --- Touch Pointer Events ---
+    function getNow() {
+      return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+    }
+
+    function onPointerDown(e) {
+      if (e.pointerType !== 'touch') {
+        return;
+      }
+      onUserGesture();
+      if (isModalOpen() || getGameStatus() !== 'playing') {
+        return;
+      }
+      if (touchState !== null) {
+        return;
+      }
+      e.preventDefault();
+      if (boardElement && typeof boardElement.setPointerCapture === 'function') {
+        try {
+          boardElement.setPointerCapture(e.pointerId);
+        } catch (err) {
+          // Ignore capture errors
+        }
+      }
+      var now = getNow();
+      touchState = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startTime: now,
+        lastX: e.clientX,
+        lastY: e.clientY,
+        accumX: 0,
+        accumY: 0,
+        movedBeyondTap: false,
+        locked: false,
+        samples: [{ x: e.clientX, y: e.clientY, t: now }]
+      };
+    }
+
+    function onPointerMove(e) {
+      if (!touchState || e.pointerId !== touchState.pointerId) {
+        return;
+      }
+      if (e.pointerType !== 'touch') {
+        return;
+      }
+      e.preventDefault();
+      if (touchState.locked || isModalOpen() || getGameStatus() !== 'playing') {
+        return;
+      }
+
+      var now = getNow();
+      var metrics = getBoardMetrics();
+      var th = computeTouchThresholds(sensitivity, metrics ? metrics.cellSize : 32);
+
+      var totalDx = e.clientX - touchState.startX;
+      var totalDy = e.clientY - touchState.startY;
+      if (Math.hypot(totalDx, totalDy) > th.tapMaxDistPx) {
+        touchState.movedBeyondTap = true;
+      }
+
+      var dx = e.clientX - touchState.lastX;
+      var dy = e.clientY - touchState.lastY;
+      touchState.lastX = e.clientX;
+      touchState.lastY = e.clientY;
+      touchState.samples.push({ x: e.clientX, y: e.clientY, t: now });
+
+      // Prune samples older than holdWindowMs
+      var maxWin = Math.max(th.flickWindowMs, th.holdWindowMs);
+      while (touchState.samples.length > 1 && now - touchState.samples[0].t > maxWin) {
+        touchState.samples.shift();
+      }
+
+      // Check downward flick (Hard Drop)
+      var i, s, dt, sdy, sdx;
+      for (i = 0; i < touchState.samples.length - 1; i++) {
+        s = touchState.samples[i];
+        dt = now - s.t;
+        if (dt > 0 && dt <= th.flickWindowMs) {
+          sdy = e.clientY - s.y;
+          sdx = Math.abs(e.clientX - s.x);
+          if (sdy >= th.flickMinDistPx && sdy > sdx * 1.4 && (sdy / dt) >= th.flickMinVelPxPerMs) {
+            emit('hardDrop');
+            touchState.locked = true;
+            return;
+          }
+        }
+        if (dt > 0 && dt <= th.holdWindowMs) {
+          sdy = s.y - e.clientY; // upward
+          sdx = Math.abs(e.clientX - s.x);
+          if (sdy >= th.holdSwipeMinPx && sdy > sdx * 1.4) {
+            emit('hold');
+            touchState.locked = true;
+            return;
+          }
+        }
+      }
+
+      // Proportional lateral drag
+      touchState.accumX += dx;
+      while (touchState.accumX >= th.pxPerCell) {
+        touchState.accumX -= th.pxPerCell;
+        emit('moveRight');
+      }
+      while (touchState.accumX <= -th.pxPerCell) {
+        touchState.accumX += th.pxPerCell;
+        emit('moveLeft');
+      }
+
+      // Proportional downward soft drop drag
+      if (dy > 0) {
+        touchState.accumY += dy;
+        while (touchState.accumY >= th.softDropStepPx) {
+          touchState.accumY -= th.softDropStepPx;
+          emit('softDropStep');
+        }
+      } else {
+        touchState.accumY = 0;
+      }
+    }
+
+    function onPointerUp(e) {
+      if (!touchState || e.pointerId !== touchState.pointerId) {
+        return;
+      }
+      var state = touchState;
+      touchState = null;
+
+      if (state.locked || isModalOpen() || getGameStatus() !== 'playing') {
+        return;
+      }
+
+      var now = getNow();
+      var metrics = getBoardMetrics();
+      var th = computeTouchThresholds(sensitivity, metrics ? metrics.cellSize : 32);
+      var dist = Math.hypot(e.clientX - state.startX, e.clientY - state.startY);
+      if (!state.movedBeyondTap && dist <= th.tapMaxDistPx && (now - state.startTime) <= th.tapMaxDurationMs) {
+        emit('rotateCW');
+      }
+    }
+
+    function onPointerCancel(e) {
+      if (touchState && e.pointerId === touchState.pointerId) {
+        touchState = null;
+      }
+    }
+
+    function onHoldClick(e) {
+      onUserGesture();
+      if (holdElement && typeof holdElement.blur === 'function') {
+        holdElement.blur();
+      }
+      if (!isModalOpen() && getGameStatus() === 'playing') {
+        emit('hold');
+      }
+    }
+
+    // --- Gamepad API ---
+    function isButtonPressed(pad, idx) {
+      var btn = pad && pad.buttons && pad.buttons[idx];
+      return Boolean(btn && (btn.pressed || btn.value > 0.5));
+    }
+
+    function findActiveGamepad() {
+      if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') {
+        return null;
+      }
+      var pads = navigator.getGamepads();
+      if (!pads) return null;
+      var i, p;
+      for (i = 0; i < pads.length; i++) {
+        p = pads[i];
+        if (p && p.connected) {
+          return p;
+        }
+      }
+      return null;
+    }
+
+    function notifyGamepad(pad) {
+      var connected = Boolean(pad);
+      var id = pad ? (pad.id || '') : '';
+      if (connected !== gpConnectedState || id !== gpActiveId) {
+        gpConnectedState = connected;
+        gpActiveId = id;
+        var isXbox = connected && (/xbox|xinput|045e/i.test(id) || pad.mapping === 'standard');
+        onGamepadChange({
+          connected: connected,
+          isXbox: isXbox,
+          id: id,
+          mapping: pad ? (pad.mapping || '') : '',
+          label: connected ? (isXbox ? 'Control Xbox conectado' : 'Control conectado') : 'Sin control conectado'
+        });
+      }
+    }
+
+    function pollGamepad() {
+      var pad = findActiveGamepad();
+      notifyGamepad(pad);
+
+      if (!pad) {
+        gpDas.reset();
+        gpPrevButtons = {};
+        if (gpSoftDrop) {
+          gpSoftDrop = false;
+          syncSoftDrop();
+        }
+        return;
+      }
+
+      var status = getGameStatus();
+      var modalOpen = isModalOpen();
+
+      var bA = isButtonPressed(pad, 0);
+      var bB = isButtonPressed(pad, 1);
+      var bX = isButtonPressed(pad, 2);
+      var bLB = isButtonPressed(pad, 4);
+      var bRB = isButtonPressed(pad, 5);
+      var bStart = isButtonPressed(pad, 9);
+      var bUp = isButtonPressed(pad, 12);
+      var bDown = isButtonPressed(pad, 13);
+      var bLeft = isButtonPressed(pad, 14);
+      var bRight = isButtonPressed(pad, 15);
+
+      var risingA = bA && !gpPrevButtons.A;
+      var risingB = bB && !gpPrevButtons.B;
+      var risingX = bX && !gpPrevButtons.X;
+      var risingLB = bLB && !gpPrevButtons.LB;
+      var risingRB = bRB && !gpPrevButtons.RB;
+      var risingStart = bStart && !gpPrevButtons.Start;
+      var risingUp = bUp && !gpPrevButtons.Up;
+
+      gpPrevButtons = {
+        A: bA, B: bB, X: bX, LB: bLB, RB: bRB, Start: bStart, Up: bUp
+      };
+
+      if (bA || bB || bX || bLB || bRB || bStart || bUp || bDown || bLeft || bRight) {
+        onUserGesture();
+      }
+
+      if (modalOpen) {
+        return;
+      }
+
+      if (risingStart && (status === 'playing' || status === 'paused')) {
+        emit('pauseToggle');
+        return;
+      }
+
+      if (status !== 'playing') {
+        if (risingA && (status === 'menu' || status === 'gameover')) {
+          emit('confirmStart');
+        }
+        gpDas.reset();
+        if (gpSoftDrop) {
+          gpSoftDrop = false;
+          syncSoftDrop();
+        }
+        return;
+      }
+
+      var axisX = pad.axes && pad.axes.length > 0 ? applyDeadzone(pad.axes[0], GAMEPAD_DEADZONE_X) : 0;
+      var axisY = pad.axes && pad.axes.length > 1 ? pad.axes[1] : 0;
+
+      var moveLeftActive = bLeft || axisX < 0;
+      var moveRightActive = bRight || axisX > 0;
+
+      if (moveLeftActive && !moveRightActive) {
+        gpDas.press(-1);
+        gpDas.release(1);
+      } else if (moveRightActive && !moveLeftActive) {
+        gpDas.press(1);
+        gpDas.release(-1);
+      } else {
+        gpDas.release(-1);
+        gpDas.release(1);
+      }
+
+      var nextSoftDrop = bDown || axisY >= GAMEPAD_SOFT_DROP_Y;
+      if (nextSoftDrop !== gpSoftDrop) {
+        gpSoftDrop = nextSoftDrop;
+        syncSoftDrop();
+      }
+
+      if (risingUp) {
+        emit('hardDrop');
+      }
+      if (risingA || risingB) {
+        emit('rotateCW');
+      }
+      if (risingX) {
+        emit('rotateCCW');
+      }
+      if (risingLB || risingRB) {
+        emit('hold');
+      }
+    }
+
+    function onGamepadEvent() {
+      pollGamepad();
+    }
+
+    function update(dtMs) {
+      if (getGameStatus() === 'playing' && !isModalOpen()) {
+        var kbRes = kbDas.update(dtMs);
+        var i;
+        for (i = 0; i < kbRes.steps; i++) {
+          emit(kbRes.dir < 0 ? 'moveLeft' : 'moveRight');
+        }
+      }
+
+      pollGamepad();
+
+      if (getGameStatus() === 'playing' && !isModalOpen()) {
+        var gpRes = gpDas.update(dtMs);
+        var j;
+        for (j = 0; j < gpRes.steps; j++) {
+          emit(gpRes.dir < 0 ? 'moveLeft' : 'moveRight');
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('keyup', onKeyUp);
+      window.addEventListener('gamepadconnected', onGamepadEvent);
+      window.addEventListener('gamepaddisconnected', onGamepadEvent);
+    }
+    if (boardElement) {
+      boardElement.addEventListener('pointerdown', onPointerDown);
+      boardElement.addEventListener('pointermove', onPointerMove);
+      boardElement.addEventListener('pointerup', onPointerUp);
+      boardElement.addEventListener('pointercancel', onPointerCancel);
+      boardElement.addEventListener('lostpointercapture', onPointerCancel);
+    }
+    if (holdElement) {
+      holdElement.addEventListener('click', onHoldClick);
+    }
+
+    function destroy() {
+      clearAll();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keyup', onKeyUp);
+        window.removeEventListener('gamepadconnected', onGamepadEvent);
+        window.removeEventListener('gamepaddisconnected', onGamepadEvent);
+      }
+      if (boardElement) {
+        boardElement.removeEventListener('pointerdown', onPointerDown);
+        boardElement.removeEventListener('pointermove', onPointerMove);
+        boardElement.removeEventListener('pointerup', onPointerUp);
+        boardElement.removeEventListener('pointercancel', onPointerCancel);
+        boardElement.removeEventListener('lostpointercapture', onPointerCancel);
+      }
+      if (holdElement) {
+        holdElement.removeEventListener('click', onHoldClick);
+      }
+    }
+
+    return {
+      setSensitivity: setSensitivity,
+      update: update,
+      clearAll: clearAll,
+      destroy: destroy
+    };
+  }
+
+  var api = {
+    computeTouchThresholds: computeTouchThresholds,
+    applyDeadzone: applyDeadzone,
+    createDasArrState: createDasArrState,
+    createInputController: createInputController
+  };
+
+  root.Tetris = root.Tetris || {};
+  root.Tetris.Input = api;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+  </script>
+  <script>
+(function (root) {
+  'use strict';
+
+  var Constants = (root.Tetris && root.Tetris.Constants) ||
+    (typeof require === 'function' ? require('./constants.js') : null);
+  var AudioMod = (root.Tetris && root.Tetris.Audio) ||
+    (typeof require === 'function' ? require('./audio.js') : null);
+  var EngineMod = (root.Tetris && root.Tetris.Engine) ||
+    (typeof require === 'function' ? require('./engine.js') : null);
+  var RendererMod = (root.Tetris && root.Tetris.Renderer) ||
+    (typeof require === 'function' ? require('./renderer.js') : null);
+  var InputMod = (root.Tetris && root.Tetris.Input) ||
+    (typeof require === 'function' ? require('./input.js') : null);
+
+  var STORAGE_KEY = Constants ? Constants.STORAGE_KEY : 'tetris_clasico_v1';
+  var DEFAULT_STATE = Constants ? Constants.DEFAULT_STATE : {
+    bestScore: 0,
+    bestLevel: 0,
+    bestLines: 0,
+    touchSensitivity: 5,
+    musicEnabled: true,
+    sfxEnabled: true,
+    startLevel: 1
+  };
+
+  var memoryFallbackState = null;
+
+  function cloneDefaultState() {
+    return {
+      bestScore: DEFAULT_STATE.bestScore,
+      bestLevel: DEFAULT_STATE.bestLevel,
+      bestLines: DEFAULT_STATE.bestLines,
+      touchSensitivity: DEFAULT_STATE.touchSensitivity,
+      musicEnabled: DEFAULT_STATE.musicEnabled,
+      sfxEnabled: DEFAULT_STATE.sfxEnabled,
+      startLevel: DEFAULT_STATE.startLevel
+    };
+  }
+
+  function sanitizeInt(val, min, max, fallback) {
+    var n = Math.floor(Number(val));
+    if (!isFinite(n)) {
+      return fallback;
+    }
+    if (min !== null && n < min) return min;
+    if (max !== null && n > max) return max;
+    return n;
+  }
+
+  function sanitizeState(raw) {
+    var base = cloneDefaultState();
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return base;
+    }
+    base.bestScore = sanitizeInt(raw.bestScore, 0, null, base.bestScore);
+    base.bestLevel = sanitizeInt(raw.bestLevel, 0, null, base.bestLevel);
+    base.bestLines = sanitizeInt(raw.bestLines, 0, null, base.bestLines);
+    base.touchSensitivity = sanitizeInt(raw.touchSensitivity, 1, 10, base.touchSensitivity);
+    base.startLevel = sanitizeInt(raw.startLevel, 1, 15, base.startLevel);
+    if (typeof raw.musicEnabled === 'boolean') {
+      base.musicEnabled = raw.musicEnabled;
+    }
+    if (typeof raw.sfxEnabled === 'boolean') {
+      base.sfxEnabled = raw.sfxEnabled;
+    }
+    return base;
+  }
+
+  function loadState(storageObj) {
+    try {
+      var store = storageObj !== undefined ? storageObj : (typeof window !== 'undefined' ? window.localStorage : null);
+      if (!store || typeof store.getItem !== 'function') {
+        return memoryFallbackState ? sanitizeState(memoryFallbackState) : cloneDefaultState();
+      }
+      var rawText = store.getItem(STORAGE_KEY);
+      if (!rawText) {
+        return memoryFallbackState ? sanitizeState(memoryFallbackState) : cloneDefaultState();
+      }
+      var parsed = JSON.parse(rawText);
+      var clean = sanitizeState(parsed);
+      memoryFallbackState = clean;
+      return clean;
+    } catch (err) {
+      return memoryFallbackState ? sanitizeState(memoryFallbackState) : cloneDefaultState();
+    }
+  }
+
+  function saveState(partialState, storageObj) {
+    var current = loadState(storageObj);
+    var merged = sanitizeState({
+      bestScore: partialState && partialState.bestScore !== undefined ? partialState.bestScore : current.bestScore,
+      bestLevel: partialState && partialState.bestLevel !== undefined ? partialState.bestLevel : current.bestLevel,
+      bestLines: partialState && partialState.bestLines !== undefined ? partialState.bestLines : current.bestLines,
+      touchSensitivity: partialState && partialState.touchSensitivity !== undefined ? partialState.touchSensitivity : current.touchSensitivity,
+      musicEnabled: partialState && partialState.musicEnabled !== undefined ? partialState.musicEnabled : current.musicEnabled,
+      sfxEnabled: partialState && partialState.sfxEnabled !== undefined ? partialState.sfxEnabled : current.sfxEnabled,
+      startLevel: partialState && partialState.startLevel !== undefined ? partialState.startLevel : current.startLevel
+    });
+    memoryFallbackState = merged;
+    try {
+      var store = storageObj !== undefined ? storageObj : (typeof window !== 'undefined' ? window.localStorage : null);
+      if (store && typeof store.setItem === 'function') {
+        store.setItem(STORAGE_KEY, JSON.stringify(merged));
+      }
+    } catch (err) {
+      // Fallback safely to in-memory state
+    }
+    return merged;
+  }
+
+  function registerPwaIfHttp() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    var proto = window.location && window.location.protocol;
+    if (proto !== 'http:' && proto !== 'https:') {
+      return;
+    }
+    if (typeof fetch === 'function') {
+      fetch('./manifest.webmanifest', { method: 'HEAD' }).then(function (res) {
+        if (res && res.ok && !document.querySelector('link[rel="manifest"]')) {
+          var link = document.createElement('link');
+          link.rel = 'manifest';
+          link.href = './manifest.webmanifest';
+          document.head.appendChild(link);
+        }
+      }).catch(function () {});
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        fetch('./service-worker.js', { method: 'HEAD' }).then(function (res) {
+          if (res && res.ok) {
+            navigator.serviceWorker.register('./service-worker.js').catch(function () {});
+          }
+        }).catch(function () {});
+      }
+    }
+  }
+
+  function bootApp() {
+    if (typeof document === 'undefined' || !EngineMod || !AudioMod || !RendererMod || !InputMod) {
+      return null;
+    }
+
+    registerPwaIfHttp();
+
+    var state = loadState();
+    var settingsOpen = false;
+    var lastStatus = 'menu';
+
+    // DOM Elements
+    var el = {
+      boardStage: document.getElementById('board-stage'),
+      boardCanvas: document.getElementById('board-canvas'),
+      holdBox: document.getElementById('hold-box'),
+      holdCanvas: document.getElementById('hold-canvas'),
+      nextCanvas: document.getElementById('next-canvas'),
+      scoreValue: document.getElementById('score-value'),
+      levelValue: document.getElementById('level-value'),
+      linesValue: document.getElementById('lines-value'),
+      bestScoreValue: document.getElementById('best-score-value'),
+      bestLevelValue: document.getElementById('best-level-value'),
+      bestLinesValue: document.getElementById('best-lines-value'),
+      btnPause: document.getElementById('btn-pause'),
+      btnSettings: document.getElementById('btn-settings'),
+      btnMusic: document.getElementById('btn-music'),
+      btnSfx: document.getElementById('btn-sfx'),
+      gamepadBadge: document.getElementById('gamepad-badge'),
+      overlayStart: document.getElementById('overlay-start'),
+      btnLevelDown: document.getElementById('btn-level-down'),
+      startLevelValue: document.getElementById('start-level-value'),
+      btnLevelUp: document.getElementById('btn-level-up'),
+      btnPlay: document.getElementById('btn-play'),
+      btnStartSettings: document.getElementById('btn-start-settings'),
+      overlayPause: document.getElementById('overlay-pause'),
+      btnResume: document.getElementById('btn-resume'),
+      btnPauseSettings: document.getElementById('btn-pause-settings'),
+      btnRestart: document.getElementById('btn-restart'),
+      overlayGameover: document.getElementById('overlay-gameover'),
+      finalScoreValue: document.getElementById('final-score-value'),
+      finalLevelValue: document.getElementById('final-level-value'),
+      finalLinesValue: document.getElementById('final-lines-value'),
+      gameoverRecordBadge: document.getElementById('gameover-record-badge'),
+      btnPlayAgain: document.getElementById('btn-play-again'),
+      btnGameoverSettings: document.getElementById('btn-gameover-settings'),
+      modalSettings: document.getElementById('modal-settings'),
+      sensitivitySlider: document.getElementById('sensitivity-slider'),
+      sensitivityValue: document.getElementById('sensitivity-value'),
+      toggleMusic: document.getElementById('toggle-music'),
+      toggleSfx: document.getElementById('toggle-sfx'),
+      settingsGamepadStatus: document.getElementById('settings-gamepad-status'),
+      btnCloseSettings: document.getElementById('btn-close-settings')
+    };
+
+    var engine = EngineMod.createEngine();
+    var audio = AudioMod.createAudioController({
+      musicEnabled: state.musicEnabled,
+      sfxEnabled: state.sfxEnabled
+    });
+    var renderer = RendererMod.createRenderer({
+      boardCanvas: el.boardCanvas,
+      holdCanvas: el.holdCanvas,
+      nextCanvas: el.nextCanvas,
+      boardStage: el.boardStage
+    });
+
+    function syncAudioButtons() {
+      var m = audio.isMusicEnabled();
+      var s = audio.isSfxEnabled();
+      if (el.btnMusic) {
+        el.btnMusic.setAttribute('aria-pressed', String(m));
+        el.btnMusic.classList.toggle('muted', !m);
+      }
+      if (el.btnSfx) {
+        el.btnSfx.setAttribute('aria-pressed', String(s));
+        el.btnSfx.classList.toggle('muted', !s);
+      }
+      if (el.toggleMusic) {
+        el.toggleMusic.setAttribute('aria-pressed', String(m));
+        el.toggleMusic.textContent = m ? 'Activada' : 'Silenciada';
+      }
+      if (el.toggleSfx) {
+        el.toggleSfx.setAttribute('aria-pressed', String(s));
+        el.toggleSfx.textContent = s ? 'Activados' : 'Silenciados';
+      }
+    }
+
+    function syncSensitivityUI() {
+      if (el.sensitivitySlider) {
+        el.sensitivitySlider.value = String(state.touchSensitivity);
+      }
+      if (el.sensitivityValue) {
+        el.sensitivityValue.textContent = String(state.touchSensitivity);
+      }
+    }
+
+    function syncStartLevelUI() {
+      if (el.startLevelValue) {
+        el.startLevelValue.textContent = String(state.startLevel);
+      }
+    }
+
+    function syncRecordsUI() {
+      if (el.bestScoreValue) el.bestScoreValue.textContent = String(state.bestScore);
+      if (el.bestLevelValue) el.bestLevelValue.textContent = String(state.bestLevel);
+      if (el.bestLinesValue) el.bestLinesValue.textContent = String(state.bestLines);
+    }
+
+    function syncOverlays(status) {
+      if (el.overlayStart) el.overlayStart.hidden = status !== 'menu';
+      if (el.overlayPause) el.overlayPause.hidden = status !== 'paused';
+      if (el.overlayGameover) el.overlayGameover.hidden = status !== 'gameover';
+      if (el.modalSettings) el.modalSettings.hidden = !settingsOpen;
+    }
+
+    function updateHud(snap) {
+      if (el.scoreValue) el.scoreValue.textContent = String(snap.score);
+      if (el.levelValue) el.levelValue.textContent = String(snap.level);
+      if (el.linesValue) el.linesValue.textContent = String(snap.lines);
+    }
+
+    function processEvents(events) {
+      if (!events || !events.length) {
+        return;
+      }
+      audio.handleEvents(events);
+      renderer.triggerEffects(events);
+
+      var i, ev;
+      for (i = 0; i < events.length; i++) {
+        ev = events[i];
+        if (ev.type === 'gameOver') {
+          var isNewRecord = ev.score > state.bestScore && ev.score > 0;
+          state = saveState({
+            bestScore: Math.max(state.bestScore, ev.score),
+            bestLevel: Math.max(state.bestLevel, ev.level),
+            bestLines: Math.max(state.bestLines, ev.lines)
+          });
+          syncRecordsUI();
+          if (el.finalScoreValue) el.finalScoreValue.textContent = String(ev.score);
+          if (el.finalLevelValue) el.finalLevelValue.textContent = String(ev.level);
+          if (el.finalLinesValue) el.finalLinesValue.textContent = String(ev.lines);
+          if (el.gameoverRecordBadge) el.gameoverRecordBadge.hidden = !isNewRecord;
+        }
+      }
+    }
+
+    function startNewGame() {
+      audio.unlock();
+      renderer.resetEffects();
+      input.clearAll();
+      var res = engine.start(state.startLevel);
+      processEvents(res.events);
+      var snap = engine.getSnapshot();
+      lastStatus = snap.status;
+      audio.syncState(snap.status);
+      syncOverlays(snap.status);
+      updateHud(snap);
+    }
+
+    function pauseGame() {
+      var snap = engine.getSnapshot();
+      if (snap.status === 'playing') {
+        engine.pause();
+        input.clearAll();
+        audio.syncState('paused');
+        lastStatus = 'paused';
+        syncOverlays('paused');
+      }
+    }
+
+    function resumeGame() {
+      audio.unlock();
+      var snap = engine.getSnapshot();
+      if (snap.status === 'paused') {
+        engine.resume();
+        input.clearAll();
+        audio.syncState('playing');
+        lastStatus = 'playing';
+        syncOverlays('playing');
+      }
+    }
+
+    function togglePauseGame() {
+      var snap = engine.getSnapshot();
+      if (snap.status === 'playing') {
+        pauseGame();
+      } else if (snap.status === 'paused') {
+        resumeGame();
+      }
+    }
+
+    function openSettings() {
+      audio.unlock();
+      var snap = engine.getSnapshot();
+      if (snap.status === 'playing') {
+        pauseGame();
+      }
+      settingsOpen = true;
+      syncOverlays(engine.getSnapshot().status);
+    }
+
+    function closeSettings() {
+      settingsOpen = false;
+      syncOverlays(engine.getSnapshot().status);
+    }
+
+    var input = InputMod.createInputController({
+      boardElement: el.boardStage,
+      holdElement: el.holdBox,
+      getBoardMetrics: renderer.getBoardMetrics,
+      getGameStatus: function () {
+        return engine.getSnapshot().status;
+      },
+      isModalOpen: function () {
+        return settingsOpen;
+      },
+      onUserGesture: function () {
+        audio.unlock();
+      },
+      onGamepadChange: function (info) {
+        if (el.gamepadBadge) {
+          el.gamepadBadge.classList.toggle('connected', info.connected);
+          var txt = el.gamepadBadge.querySelector('.gamepad-text');
+          if (txt) txt.textContent = info.label;
+        }
+        if (el.settingsGamepadStatus) {
+          el.settingsGamepadStatus.classList.toggle('connected', info.connected);
+          el.settingsGamepadStatus.textContent = info.label;
+        }
+      },
+      onAction: function (action) {
+        var res = null;
+        if (action === 'moveLeft') {
+          res = engine.moveLeft();
+        } else if (action === 'moveRight') {
+          res = engine.moveRight();
+        } else if (action === 'softDropStart') {
+          engine.setSoftDrop(true);
+        } else if (action === 'softDropEnd') {
+          engine.setSoftDrop(false);
+        } else if (action === 'softDropStep') {
+          res = engine.softDropStep();
+        } else if (action === 'hardDrop') {
+          res = engine.hardDrop();
+        } else if (action === 'rotateCW') {
+          res = engine.rotateCW();
+        } else if (action === 'rotateCCW') {
+          res = engine.rotateCCW();
+        } else if (action === 'hold') {
+          res = engine.hold();
+        } else if (action === 'pauseToggle') {
+          togglePauseGame();
+        } else if (action === 'confirmStart') {
+          startNewGame();
+        }
+        if (res && res.events && res.events.length) {
+          processEvents(res.events);
+        }
+      },
+      sensitivity: state.touchSensitivity
+    });
+
+    function bindButton(btn, handler) {
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        btn.blur();
+        audio.unlock();
+        handler();
+      });
+    }
+
+    bindButton(el.btnPlay, startNewGame);
+    bindButton(el.btnPlayAgain, startNewGame);
+    bindButton(el.btnRestart, startNewGame);
+    bindButton(el.btnPause, togglePauseGame);
+    bindButton(el.btnResume, resumeGame);
+    bindButton(el.btnSettings, openSettings);
+    bindButton(el.btnStartSettings, openSettings);
+    bindButton(el.btnPauseSettings, openSettings);
+    bindButton(el.btnGameoverSettings, openSettings);
+    bindButton(el.btnCloseSettings, closeSettings);
+
+    bindButton(el.btnLevelDown, function () {
+      state = saveState({ startLevel: Math.max(1, state.startLevel - 1) });
+      syncStartLevelUI();
+    });
+
+    bindButton(el.btnLevelUp, function () {
+      state = saveState({ startLevel: Math.min(15, state.startLevel + 1) });
+      syncStartLevelUI();
+    });
+
+    function toggleMusic() {
+      var next = !audio.isMusicEnabled();
+      audio.setMusicEnabled(next);
+      state = saveState({ musicEnabled: next });
+      syncAudioButtons();
+    }
+
+    function toggleSfx() {
+      var next = !audio.isSfxEnabled();
+      audio.setSfxEnabled(next);
+      state = saveState({ sfxEnabled: next });
+      syncAudioButtons();
+    }
+
+    bindButton(el.btnMusic, toggleMusic);
+    bindButton(el.toggleMusic, toggleMusic);
+    bindButton(el.btnSfx, toggleSfx);
+    bindButton(el.toggleSfx, toggleSfx);
+
+    if (el.sensitivitySlider) {
+      var onSensChange = function () {
+        var val = sanitizeInt(el.sensitivitySlider.value, 1, 10, 5);
+        state = saveState({ touchSensitivity: val });
+        input.setSensitivity(val);
+        syncSensitivityUI();
+      };
+      el.sensitivitySlider.addEventListener('input', onSensChange);
+      el.sensitivitySlider.addEventListener('change', onSensChange);
+    }
+
+    if (el.modalSettings) {
+      el.modalSettings.addEventListener('click', function (e) {
+        if (e.target === el.modalSettings) {
+          closeSettings();
+        }
+      });
+    }
+
+    window.addEventListener('keydown', function (e) {
+      if ((e.code === 'Escape' || e.key === 'Escape') && settingsOpen) {
+        e.preventDefault();
+        closeSettings();
+      }
+    });
+
+    window.addEventListener('blur', function () {
+      input.clearAll();
+      if (engine.getSnapshot().status === 'playing') {
+        pauseGame();
+      }
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        input.clearAll();
+        if (engine.getSnapshot().status === 'playing') {
+          pauseGame();
+        }
+      }
+    });
+
+    window.addEventListener('resize', function () {
+      renderer.resize();
+    });
+
+    // Initial UI sync
+    renderer.resize();
+    syncAudioButtons();
+    syncSensitivityUI();
+    syncStartLevelUI();
+    syncRecordsUI();
+    syncOverlays('menu');
+
+    var lastTime = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+    function frame(now) {
+      var dtMs = Math.min(100, Math.max(0, now - lastTime));
+      lastTime = now;
+
+      input.update(dtMs);
+
+      var snap = engine.getSnapshot();
+      if (snap.status === 'playing' && !settingsOpen) {
+        var stepRes = engine.step(dtMs);
+        processEvents(stepRes.events);
+        snap = engine.getSnapshot();
+      }
+
+      if (snap.status !== lastStatus) {
+        lastStatus = snap.status;
+        audio.syncState(snap.status);
+        syncOverlays(snap.status);
+      }
+
+      updateHud(snap);
+      renderer.render(snap, dtMs);
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+
+    return {
+      engine: engine,
+      audio: audio,
+      renderer: renderer,
+      input: input
+    };
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootApp);
+    } else {
+      bootApp();
+    }
+  }
+
+  var api = {
+    STORAGE_KEY: STORAGE_KEY,
+    DEFAULT_STATE: DEFAULT_STATE,
+    sanitizeState: sanitizeState,
+    loadState: loadState,
+    saveState: saveState,
+    bootApp: bootApp
+  };
+
+  root.Tetris = root.Tetris || {};
+  root.Tetris.Main = api;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+  </script>
+</body>
+</html>
